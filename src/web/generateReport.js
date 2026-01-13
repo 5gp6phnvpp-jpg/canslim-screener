@@ -553,11 +553,48 @@ export async function generateWebReport(results) {
     <!-- 優良銘柄ランキング -->
     <section class="section" id="section-all">
       <h2 class="section-title">⭐ 優良銘柄ランキング TOP20（スコア順）</h2>
-      <p class="section-subtitle">CANSLIM M/S/N/L要素を総合評価</p>
+      <p class="section-subtitle">CANSLIM M/S/N/L要素を総合評価（S:20点 + N:25点 + L:25点 + パターン:30点 - 決算リスク）</p>
       ${candidates.all.length > 0 ? `
-      <div class="stock-grid">
-        ${candidates.all.slice(0, 20).map(s => createStockCard(s, s.signal === 'BREAKOUT' ? 'breakout' : s.signal === 'APPROACHING' ? 'approaching' : 'forming')).join('')}
-      </div>
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>スコア</th>
+            <th>コード</th>
+            <th>銘柄名</th>
+            <th>業種</th>
+            <th>シグナル</th>
+            <th>現在値</th>
+            <th>RS</th>
+            <th>出来高比</th>
+            <th>リンク</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[...candidates.all].sort((a, b) => b.score - a.score).slice(0, 20).map((s, i) => `
+          <tr data-industry="${s.industry || ''}">
+            <td>${i + 1}</td>
+            <td style="font-weight: bold; color: ${s.score >= 70 ? '#00c851' : s.score >= 50 ? '#ffbb33' : '#888'}; font-size: 1.1rem;">
+              ${s.score}点
+            </td>
+            <td><strong>${s.code}</strong></td>
+            <td>${s.name}</td>
+            <td>${s.industry || '-'}</td>
+            <td style="color: ${s.signal === 'BREAKOUT' ? '#ff4444' : s.signal === 'APPROACHING' ? '#ffbb33' : '#00c851'}">
+              ${s.signalMessage}
+            </td>
+            <td>¥${s.currentPrice?.toLocaleString() || '-'}</td>
+            <td style="color: ${(s.analysis?.leader?.stockRS || 0) >= 0 ? '#00c851' : '#ff4444'}">
+              ${(s.analysis?.leader?.stockRS || 0) >= 0 ? '+' : ''}${(s.analysis?.leader?.stockRS || 0).toFixed(1)}%
+            </td>
+            <td>${s.volumeRatio ? Math.round(s.volumeRatio * 100) + '%' : '-'}</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=${s.code}" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          `).join('')}
+        </tbody>
+      </table>
       ` : '<p style="color: #888;">該当銘柄なし</p>'}
     </section>
     
