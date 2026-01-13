@@ -12,9 +12,9 @@ import path from 'path';
  * HTMLレポートを生成
  */
 export async function generateWebReport(results) {
-    const { date, marketTrend, industryRankings, candidates } = results;
+  const { date, marketTrend, industryRankings, candidates } = results;
 
-    const html = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -347,7 +347,7 @@ export async function generateWebReport(results) {
     <!-- ブレイクアウト銘柄 -->
     ${candidates.breakouts && candidates.breakouts.length > 0 ? `
     <section class="section">
-      <h2 class="section-title">🔴 ブレイクアウト銘柄</h2>
+      <h2 class="section-title">🔴 ブレイクアウト銘柄（${candidates.breakouts.length}銘柄）</h2>
       <div class="stock-grid">
         ${candidates.breakouts.map(s => createStockCard(s, 'breakout')).join('')}
       </div>
@@ -357,9 +357,9 @@ export async function generateWebReport(results) {
     <!-- 接近中 -->
     ${candidates.approaching && candidates.approaching.length > 0 ? `
     <section class="section">
-      <h2 class="section-title">🟡 ピボット接近中</h2>
+      <h2 class="section-title">🟡 新高値接近中（${candidates.approaching.length}銘柄）</h2>
       <div class="stock-grid">
-        ${candidates.approaching.slice(0, 10).map(s => createStockCard(s, 'approaching')).join('')}
+        ${candidates.approaching.slice(0, 12).map(s => createStockCard(s, 'approaching')).join('')}
       </div>
     </section>
     ` : ''}
@@ -367,9 +367,19 @@ export async function generateWebReport(results) {
     <!-- 形成中 -->
     ${candidates.forming && candidates.forming.length > 0 ? `
     <section class="section">
-      <h2 class="section-title">🟢 パターン形成中（ウォッチリスト）</h2>
+      <h2 class="section-title">🟢 パターン形成中（${candidates.forming.length}銘柄）</h2>
       <div class="stock-grid">
-        ${candidates.forming.slice(0, 10).map(s => createStockCard(s, 'forming')).join('')}
+        ${candidates.forming.slice(0, 12).map(s => createStockCard(s, 'forming')).join('')}
+      </div>
+    </section>
+    ` : ''}
+    
+    <!-- 優良銘柄ランキング（スコア順） -->
+    ${candidates.all && candidates.all.length > 0 ? `
+    <section class="section">
+      <h2 class="section-title">⭐ 優良銘柄ランキング TOP20（スコア順）</h2>
+      <div class="stock-grid">
+        ${candidates.all.slice(0, 20).map(s => createStockCard(s, s.signal === 'BREAKOUT' ? 'breakout' : s.signal === 'APPROACHING' ? 'approaching' : 'forming')).join('')}
       </div>
     </section>
     ` : ''}
@@ -382,11 +392,11 @@ export async function generateWebReport(results) {
 </body>
 </html>`;
 
-    return html;
+  return html;
 }
 
 function createStockCard(stock, type) {
-    return `
+  return `
     <div class="stock-card">
       <div class="stock-header ${type}">
         <span class="stock-code">${stock.code}</span>
@@ -429,20 +439,20 @@ function createStockCard(stock, type) {
  * レポートを保存
  */
 export async function saveWebReport(results) {
-    const html = await generateWebReport(results);
+  const html = await generateWebReport(results);
 
-    const docsDir = path.join(process.cwd(), 'docs');
-    await fs.mkdir(docsDir, { recursive: true });
+  const docsDir = path.join(process.cwd(), 'docs');
+  await fs.mkdir(docsDir, { recursive: true });
 
-    // 最新版をindex.htmlとして保存
-    const indexPath = path.join(docsDir, 'index.html');
-    await fs.writeFile(indexPath, html);
+  // 最新版をindex.htmlとして保存
+  const indexPath = path.join(docsDir, 'index.html');
+  await fs.writeFile(indexPath, html);
 
-    // 日付付きでも保存
-    const datePath = path.join(docsDir, `report_${results.date}.html`);
-    await fs.writeFile(datePath, html);
+  // 日付付きでも保存
+  const datePath = path.join(docsDir, `report_${results.date}.html`);
+  await fs.writeFile(datePath, html);
 
-    console.log(`🌐 Webレポート保存: ${indexPath}`);
+  console.log(`🌐 Webレポート保存: ${indexPath}`);
 
-    return indexPath;
+  return indexPath;
 }

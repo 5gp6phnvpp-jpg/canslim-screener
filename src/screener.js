@@ -77,6 +77,28 @@ function analyzeStock(code, priceData, stockInfo, industryRankings, priceDataMap
     }
 
     // 結果オブジェクト
+    // シグナル判定: パターン検出またはN（新高値）状態で判定
+    let signal = 'WATCHING';
+    let signalMessage = '📊 監視中';
+
+    if (pattern.detected) {
+        // パターンが検出された場合はパターンのシグナルを使用
+        signal = pattern.signal;
+        signalMessage = pattern.signalMessage;
+    } else if (newHighs.isAtNewHigh && supplyDemand.volumeRatio >= 1.5) {
+        // 52週新高値更新 + 出来高150%以上 = ブレイクアウト
+        signal = 'BREAKOUT';
+        signalMessage = '🔥 新高値ブレイク！';
+    } else if (newHighs.isAtNewHigh) {
+        // 52週新高値更新（出来高未確認）
+        signal = 'APPROACHING';
+        signalMessage = '📈 新高値更新中';
+    } else if (newHighs.distanceFromHigh <= 3 && newHighs.passed) {
+        // 新高値まで3%以内
+        signal = 'FORMING';
+        signalMessage = '🎯 新高値接近中';
+    }
+
     return {
         code,
         name: stockInfo.name,
@@ -85,13 +107,13 @@ function analyzeStock(code, priceData, stockInfo, industryRankings, priceDataMap
         score,
 
         // シグナル情報
-        signal: pattern.detected ? pattern.signal : 'WATCHING',
-        signalMessage: pattern.detected ? pattern.signalMessage : '📊 監視中',
+        signal,
+        signalMessage,
 
-        // ピボット・買いゾーン
-        pivotPrice: pattern.detected ? pattern.pivotPrice : null,
+        // ピボット・買いゾーン（新高値の場合は52週高値を使用）
+        pivotPrice: pattern.detected ? pattern.pivotPrice : (newHighs.isAtNewHigh ? newHighs.high52Week : null),
         buyZoneMax: pattern.detected ? pattern.buyZoneMax : null,
-        distanceToPivot: pattern.detected ? pattern.distanceToPivot : null,
+        distanceToPivot: pattern.detected ? pattern.distanceToPivot : newHighs.distanceFromHigh,
 
         // 出来高
         volumeRatio: supplyDemand.volumeRatio,
