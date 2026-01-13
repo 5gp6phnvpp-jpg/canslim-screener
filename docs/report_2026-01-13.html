@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CANSLIM スクリーニングレポート - 2026-01-13</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -19,10 +15,7 @@
       padding: 20px;
     }
     
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+    .container { max-width: 1400px; margin: 0 auto; }
     
     header {
       text-align: center;
@@ -36,13 +29,60 @@
       background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
       margin-bottom: 10px;
     }
     
-    header .date {
-      color: #888;
+    header .date { color: #888; font-size: 0.9rem; }
+    
+    /* ナビゲーションタブ */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .nav-tab {
+      padding: 10px 20px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 20px;
+      color: #e8e8e8;
+      cursor: pointer;
+      transition: all 0.3s;
       font-size: 0.9rem;
     }
+    
+    .nav-tab:hover, .nav-tab.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* 業種フィルター */
+    .filter-container {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .filter-label { font-weight: bold; }
+    
+    .filter-select {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: #e8e8e8;
+      font-size: 0.9rem;
+    }
+    
+    .filter-select option { background: #1a1a2e; }
     
     .section {
       background: rgba(255,255,255,0.05);
@@ -60,6 +100,12 @@
       gap: 10px;
     }
     
+    .section-subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 16px;
+    }
+    
     /* マーケット状況 */
     .market-status {
       display: flex;
@@ -75,18 +121,10 @@
       font-size: 1.1rem;
     }
     
-    .status-confirmed {
-      background: linear-gradient(135deg, #00c851 0%, #007e33 100%);
-    }
-    
-    .status-pressure {
-      background: linear-gradient(135deg, #ffbb33 0%, #ff8800 100%);
-      color: #000;
-    }
-    
-    .status-correction {
-      background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
-    }
+    .status-confirmed { background: linear-gradient(135deg, #00c851 0%, #007e33 100%); }
+    .status-pressure { background: linear-gradient(135deg, #ffbb33 0%, #ff8800 100%); color: #000; }
+    .status-correction { background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); }
+    .status-neutral { background: linear-gradient(135deg, #888 0%, #666 100%); }
     
     .market-details {
       display: flex;
@@ -101,15 +139,8 @@
       border-radius: 10px;
     }
     
-    .market-detail-label {
-      font-size: 0.8rem;
-      color: #888;
-    }
-    
-    .market-detail-value {
-      font-size: 1.2rem;
-      font-weight: bold;
-    }
+    .market-detail-label { font-size: 0.8rem; color: #888; }
+    .market-detail-value { font-size: 1.2rem; font-weight: bold; }
     
     /* 業種ランキング */
     .industry-grid {
@@ -128,9 +159,7 @@
       transition: transform 0.2s;
     }
     
-    .industry-item:hover {
-      transform: translateX(5px);
-    }
+    .industry-item:hover { transform: translateX(5px); }
     
     .industry-rank {
       width: 28px;
@@ -145,21 +174,10 @@
       margin-right: 12px;
     }
     
-    .industry-name {
-      flex: 1;
-    }
-    
-    .industry-perf {
-      font-weight: bold;
-    }
-    
-    .industry-perf.positive {
-      color: #00c851;
-    }
-    
-    .industry-perf.negative {
-      color: #ff4444;
-    }
+    .industry-name { flex: 1; }
+    .industry-perf { font-weight: bold; }
+    .industry-perf.positive { color: #00c851; }
+    .industry-perf.negative { color: #ff4444; }
     
     /* 銘柄カード */
     .stock-grid {
@@ -180,6 +198,8 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
     
+    .stock-card.hidden { display: none; }
+    
     .stock-header {
       padding: 16px;
       display: flex;
@@ -187,62 +207,22 @@
       align-items: center;
     }
     
-    .stock-header.breakout {
-      background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
-    }
+    .stock-header.breakout { background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); }
+    .stock-header.approaching { background: linear-gradient(135deg, #ffbb33 0%, #ff8800 100%); color: #000; }
+    .stock-header.forming { background: linear-gradient(135deg, #00c851 0%, #007e33 100%); }
+    .stock-header.volume-surge { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); }
+    .stock-header.rs-leader { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); }
     
-    .stock-header.approaching {
-      background: linear-gradient(135deg, #ffbb33 0%, #ff8800 100%);
-      color: #000;
-    }
+    .stock-code { font-size: 1.2rem; font-weight: bold; }
+    .stock-signal { font-size: 0.8rem; padding: 4px 10px; background: rgba(0,0,0,0.2); border-radius: 10px; }
     
-    .stock-header.forming {
-      background: linear-gradient(135deg, #00c851 0%, #007e33 100%);
-    }
+    .stock-body { padding: 16px; }
+    .stock-name { font-size: 1.1rem; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     
-    .stock-code {
-      font-size: 1.2rem;
-      font-weight: bold;
-    }
-    
-    .stock-signal {
-      font-size: 0.8rem;
-      padding: 4px 10px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 10px;
-    }
-    
-    .stock-body {
-      padding: 16px;
-    }
-    
-    .stock-name {
-      font-size: 1.1rem;
-      margin-bottom: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .stock-details {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    
-    .stock-detail {
-      display: flex;
-      justify-content: space-between;
-    }
-    
-    .stock-detail-label {
-      color: #888;
-      font-size: 0.85rem;
-    }
-    
-    .stock-detail-value {
-      font-weight: 500;
-    }
+    .stock-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stock-detail { display: flex; justify-content: space-between; }
+    .stock-detail-label { color: #888; font-size: 0.85rem; }
+    .stock-detail-value { font-weight: 500; }
     
     .stock-footer {
       padding: 12px 16px;
@@ -251,29 +231,72 @@
       justify-content: space-between;
     }
     
-    .stock-link {
-      color: #667eea;
-      text-decoration: none;
-      font-size: 0.9rem;
+    .stock-link { color: #667eea; text-decoration: none; font-size: 0.9rem; }
+    .stock-link:hover { text-decoration: underline; }
+    
+    /* 決算カレンダー */
+    .earnings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
     }
     
-    .stock-link:hover {
-      text-decoration: underline;
+    .earnings-item {
+      padding: 12px 16px;
+      background: rgba(255,100,100,0.1);
+      border-radius: 10px;
+      border-left: 4px solid #ff4444;
     }
+    
+    .earnings-item.medium { border-left-color: #ffbb33; background: rgba(255,187,51,0.1); }
+    
+    .earnings-code { font-weight: bold; font-size: 1.1rem; }
+    .earnings-name { font-size: 0.85rem; color: #888; margin-bottom: 4px; }
+    .earnings-date { color: #ff4444; font-weight: 500; }
+    .earnings-item.medium .earnings-date { color: #ffbb33; }
+    
+    /* アーカイブ */
+    .archive-list {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .archive-link {
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #667eea;
+      text-decoration: none;
+    }
+    
+    .archive-link:hover { background: rgba(255,255,255,0.2); }
+    
+    /* テーブル */
+    .ranking-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .ranking-table th, .ranking-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .ranking-table th {
+      background: rgba(255,255,255,0.05);
+      font-weight: 600;
+    }
+    
+    .ranking-table tr:hover { background: rgba(255,255,255,0.05); }
     
     /* レスポンシブ */
     @media (max-width: 600px) {
-      header h1 {
-        font-size: 1.5rem;
-      }
-      
-      .section {
-        padding: 16px;
-      }
-      
-      .stock-grid {
-        grid-template-columns: 1fr;
-      }
+      header h1 { font-size: 1.5rem; }
+      .section { padding: 16px; }
+      .stock-grid { grid-template-columns: 1fr; }
+      .nav-tabs { justify-content: flex-start; overflow-x: auto; }
     }
     
     footer {
@@ -288,11 +311,31 @@
   <div class="container">
     <header>
       <h1>📊 CANSLIM スクリーニングレポート</h1>
-      <p class="date">更新日時: 2026-01-13 1:24:28</p>
+      <p class="date">更新日時: 2026-01-13 1:42:31</p>
     </header>
     
+    <!-- ナビゲーションタブ -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showSection('all')">📋 すべて</button>
+      <button class="nav-tab" onclick="showSection('breakouts')">🔴 ブレイクアウト</button>
+      <button class="nav-tab" onclick="showSection('rs')">💪 RSランキング</button>
+      <button class="nav-tab" onclick="showSection('volume')">📈 出来高急増</button>
+      <button class="nav-tab" onclick="showSection('earnings')">📅 決算カレンダー</button>
+    </div>
+    
+    <!-- 業種フィルター -->
+    <div class="filter-container">
+      <span class="filter-label">🏭 業種フィルター:</span>
+      <select class="filter-select" id="industryFilter" onchange="filterByIndustry()">
+        <option value="">すべての業種</option>
+        <option value="建設業">建設業</option><option value="水産・農林業">水産・農林業</option><option value="非鉄金属">非鉄金属</option>
+      </select>
+      <span class="filter-label">📊 サマリー:</span>
+      <span>分析: 15銘柄 / ブレイク: 1 / 接近: 2 / 形成: 7</span>
+    </div>
+    
     <!-- マーケット状況 -->
-    <section class="section">
+    <section class="section" id="section-market">
       <h2 class="section-title">🚦 マーケット状況</h2>
       <div class="market-status">
         <span class="status-badge status-confirmed">
@@ -309,27 +352,33 @@
           <div class="market-detail-label">TOPIX vs 50日MA</div>
           <div class="market-detail-value">✅ 上</div>
         </div>
+        
+        <div class="market-detail">
+          <div class="market-detail-label">50日MAからの乖離</div>
+          <div class="market-detail-value">+6.71%</div>
+        </div>
+        
       </div>
     </section>
     
     <!-- 業種ランキング -->
-    <section class="section">
+    <section class="section" id="section-industry">
       <h2 class="section-title">📈 業種パフォーマンスTOP20</h2>
       <div class="industry-grid">
         
           <div class="industry-item">
             <span class="industry-rank">1</span>
-            <span class="industry-name">建設業</span>
+            <span class="industry-name">非鉄金属</span>
             <span class="industry-perf positive">
-              +7.21%
+              +41.63%
             </span>
           </div>
         
           <div class="industry-item">
             <span class="industry-rank">2</span>
-            <span class="industry-name">サービス業</span>
+            <span class="industry-name">建設業</span>
             <span class="industry-perf positive">
-              +3.54%
+              +6.08%
             </span>
           </div>
         
@@ -337,7 +386,7 @@
             <span class="industry-rank">3</span>
             <span class="industry-name">水産・農林業</span>
             <span class="industry-perf positive">
-              +1.04%
+              +1.23%
             </span>
           </div>
         
@@ -353,12 +402,13 @@
     </section>
     
     <!-- ブレイクアウト銘柄 -->
-    
-    <section class="section">
-      <h2 class="section-title">🔴 ブレイクアウト銘柄（4銘柄）</h2>
+    <section class="section" id="section-breakouts">
+      <h2 class="section-title">🔴 ブレイクアウト銘柄（1銘柄）</h2>
+      <p class="section-subtitle">52週新高値更新 + 出来高150%以上の銘柄</p>
+      
       <div class="stock-grid">
         
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header breakout">
         <span class="stock-code">1443</span>
         <span class="stock-signal">🔥 新高値ブレイク！</span>
@@ -382,6 +432,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +16.4%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">1.8%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -394,125 +456,18 @@
       </div>
     </div>
   
-    <div class="stock-card">
-      <div class="stock-header breakout">
-        <span class="stock-code">1721</span>
-        <span class="stock-signal">🔥 新高値ブレイク！</span>
       </div>
-      <div class="stock-body">
-        <div class="stock-name">コムシスホールディングス</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥4,714</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥4,726</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">172%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1721/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1721" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-    <div class="stock-card">
-      <div class="stock-header breakout">
-        <span class="stock-code">1723</span>
-        <span class="stock-signal">🔥 新高値ブレイク！</span>
-      </div>
-      <div class="stock-body">
-        <div class="stock-name">日本電技</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥8,580</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥8,620</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">150%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1723/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1723" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-    <div class="stock-card">
-      <div class="stock-header breakout">
-        <span class="stock-code">1736</span>
-        <span class="stock-signal">🔥 新高値ブレイク！</span>
-      </div>
-      <div class="stock-body">
-        <div class="stock-name">オーテック</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥2,585</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥2,650</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">163%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1736/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1736" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-      </div>
+      
     </section>
     
-    
-    <!-- 接近中 -->
-    
-    <section class="section">
-      <h2 class="section-title">🟡 新高値接近中（3銘柄）</h2>
+    <!-- 新高値接近中 -->
+    <section class="section" id="section-approaching">
+      <h2 class="section-title">🟡 新高値更新中（2銘柄）</h2>
+      <p class="section-subtitle">52週新高値を更新したが出来高未確認の銘柄</p>
+      
       <div class="stock-grid">
         
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header approaching">
         <span class="stock-code">1375</span>
         <span class="stock-signal">📈 新高値更新中</span>
@@ -536,6 +491,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +1.1%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">0.4%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -548,7 +515,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header approaching">
         <span class="stock-code">1430</span>
         <span class="stock-signal">📈 新高値更新中</span>
@@ -572,6 +539,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +10.0%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">0.0%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -584,53 +563,18 @@
       </div>
     </div>
   
-    <div class="stock-card">
-      <div class="stock-header approaching">
-        <span class="stock-code">1446</span>
-        <span class="stock-signal">📈 新高値更新中</span>
       </div>
-      <div class="stock-body">
-        <div class="stock-name">キャンディル</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥566</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥568</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">99%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1446/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1446" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-      </div>
+      
     </section>
     
-    
-    <!-- 形成中 -->
-    
-    <section class="section">
-      <h2 class="section-title">🟢 パターン形成中（10銘柄）</h2>
+    <!-- パターン形成中 -->
+    <section class="section" id="section-forming">
+      <h2 class="section-title">🟢 新高値接近中（7銘柄）</h2>
+      <p class="section-subtitle">新高値まで3%以内の銘柄</p>
+      
       <div class="stock-grid">
         
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header forming">
         <span class="stock-code">1301</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -654,6 +598,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +7.5%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">1.0%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -666,7 +622,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header forming">
         <span class="stock-code">1333</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -690,6 +646,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +5.7%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">1.9%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -702,7 +670,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header forming">
         <span class="stock-code">1377</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -726,6 +694,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +4.7%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">1.8%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -738,17 +718,17 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header forming">
-        <span class="stock-code">1381</span>
+        <span class="stock-code">1380</span>
         <span class="stock-signal">🎯 新高値接近中</span>
       </div>
       <div class="stock-body">
-        <div class="stock-name">アクシーズ</div>
+        <div class="stock-name">秋川牧園</div>
         <div class="stock-details">
           <div class="stock-detail">
             <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥4,135</span>
+            <span class="stock-detail-value">¥1,004</span>
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">ピボット</span>
@@ -756,25 +736,37 @@
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">54%</span>
+            <span class="stock-detail-value">90%</span>
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +0.9%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">1.9%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1381/" target="_blank" class="stock-link">
+        <a href="https://www.tradingview.com/symbols/TSE-1380/" target="_blank" class="stock-link">
           📈 TradingView
         </a>
-        <a href="https://kabutan.jp/stock/?code=1381" target="_blank" class="stock-link">
+        <a href="https://kabutan.jp/stock/?code=1380" target="_blank" class="stock-link">
           📊 株探
         </a>
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header forming">
         <span class="stock-code">1433</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -798,6 +790,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +18.4%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">2.1%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -810,7 +814,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header forming">
         <span class="stock-code">1444</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -834,6 +838,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +2.7%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">0.3%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -846,7 +862,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header forming">
         <span class="stock-code">1716</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -870,6 +886,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +2.4%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">2.9%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -882,125 +910,323 @@
       </div>
     </div>
   
-    <div class="stock-card">
-      <div class="stock-header forming">
-        <span class="stock-code">1719</span>
-        <span class="stock-signal">🎯 新高値接近中</span>
       </div>
-      <div class="stock-body">
-        <div class="stock-name">安藤・間</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥1,979</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥-</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">81%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1719/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1719" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-    <div class="stock-card">
-      <div class="stock-header forming">
-        <span class="stock-code">1720</span>
-        <span class="stock-signal">🎯 新高値接近中</span>
-      </div>
-      <div class="stock-body">
-        <div class="stock-name">東急建設</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥1,339</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥-</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">46%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1720/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1720" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-    <div class="stock-card">
-      <div class="stock-header forming">
-        <span class="stock-code">1726</span>
-        <span class="stock-signal">🎯 新高値接近中</span>
-      </div>
-      <div class="stock-body">
-        <div class="stock-name">ビーアールホールディングス</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥356</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥-</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">90%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1726/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1726" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-      </div>
+      
     </section>
     
+    <!-- RSランキング -->
+    <section class="section" id="section-rs">
+      <h2 class="section-title">💪 RSランキングTOP20（相対強度順）</h2>
+      <p class="section-subtitle">過去の株価上昇率が高い銘柄（モメンタム指標）</p>
+      
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>コード</th>
+            <th>銘柄名</th>
+            <th>業種</th>
+            <th>RS</th>
+            <th>現在値</th>
+            <th>リンク</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr data-industry="非鉄金属">
+            <td>1</td>
+            <td><strong>1491</strong></td>
+            <td>中外鉱業</td>
+            <td>非鉄金属</td>
+            <td style="color: #00c851">
+              +41.6%
+            </td>
+            <td>¥1,007</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1491" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="建設業">
+            <td>2</td>
+            <td><strong>1433</strong></td>
+            <td>ベステラ</td>
+            <td>建設業</td>
+            <td style="color: #00c851">
+              +18.4%
+            </td>
+            <td>¥1,286</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1433" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="建設業">
+            <td>3</td>
+            <td><strong>1443</strong></td>
+            <td>技研ホールディングス</td>
+            <td>建設業</td>
+            <td style="color: #00c851">
+              +16.4%
+            </td>
+            <td>¥270</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1443" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="建設業">
+            <td>4</td>
+            <td><strong>1436</strong></td>
+            <td>グリーンエナジー＆カンパニー</td>
+            <td>建設業</td>
+            <td style="color: #00c851">
+              +11.2%
+            </td>
+            <td>¥2,412</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1436" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="建設業">
+            <td>5</td>
+            <td><strong>1430</strong></td>
+            <td>ファーストコーポレーション</td>
+            <td>建設業</td>
+            <td style="color: #00c851">
+              +10.0%
+            </td>
+            <td>¥1,019</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1430" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="水産・農林業">
+            <td>6</td>
+            <td><strong>1301</strong></td>
+            <td>極洋</td>
+            <td>水産・農林業</td>
+            <td style="color: #00c851">
+              +7.5%
+            </td>
+            <td>¥4,950</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1301" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="水産・農林業">
+            <td>7</td>
+            <td><strong>1333</strong></td>
+            <td>マルハニチロ</td>
+            <td>水産・農林業</td>
+            <td style="color: #00c851">
+              +5.7%
+            </td>
+            <td>¥1,307</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1333" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="建設業">
+            <td>8</td>
+            <td><strong>1434</strong></td>
+            <td>ＪＥＳＣＯホールディングス</td>
+            <td>建設業</td>
+            <td style="color: #00c851">
+              +5.1%
+            </td>
+            <td>¥1,441</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1434" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="水産・農林業">
+            <td>9</td>
+            <td><strong>1377</strong></td>
+            <td>サカタのタネ</td>
+            <td>水産・農林業</td>
+            <td style="color: #00c851">
+              +4.7%
+            </td>
+            <td>¥4,335</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1377" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="建設業">
+            <td>10</td>
+            <td><strong>1444</strong></td>
+            <td>ニッソウ</td>
+            <td>建設業</td>
+            <td style="color: #00c851">
+              +2.7%
+            </td>
+            <td>¥2,930</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1444" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="建設業">
+            <td>11</td>
+            <td><strong>1716</strong></td>
+            <td>第一カッター興業</td>
+            <td>建設業</td>
+            <td style="color: #00c851">
+              +2.4%
+            </td>
+            <td>¥1,395</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1716" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="水産・農林業">
+            <td>12</td>
+            <td><strong>1375</strong></td>
+            <td>ユキグニファクトリー</td>
+            <td>水産・農林業</td>
+            <td style="color: #00c851">
+              +1.1%
+            </td>
+            <td>¥1,055</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1375" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="水産・農林業">
+            <td>13</td>
+            <td><strong>1380</strong></td>
+            <td>秋川牧園</td>
+            <td>水産・農林業</td>
+            <td style="color: #00c851">
+              +0.9%
+            </td>
+            <td>¥1,004</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1380" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="水産・農林業">
+            <td>14</td>
+            <td><strong>1379</strong></td>
+            <td>ホクト</td>
+            <td>水産・農林業</td>
+            <td style="color: #00c851">
+              +0.1%
+            </td>
+            <td>¥2,025</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1379" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="水産・農林業">
+            <td>15</td>
+            <td><strong>1384</strong></td>
+            <td>ホクリヨウ</td>
+            <td>水産・農林業</td>
+            <td style="color: #ff4444">
+              -2.8%
+            </td>
+            <td>¥3,010</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1384" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+      
+    </section>
     
-    <!-- 優良銘柄ランキング（スコア順） -->
+    <!-- 出来高急増ランキング -->
+    <section class="section" id="section-volume">
+      <h2 class="section-title">📈 出来高急増ランキング（150%以上）</h2>
+      <p class="section-subtitle">出来高が50日平均の150%以上の銘柄</p>
+      
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>コード</th>
+            <th>銘柄名</th>
+            <th>業種</th>
+            <th>出来高比</th>
+            <th>現在値</th>
+            <th>シグナル</th>
+            <th>リンク</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr data-industry="建設業">
+            <td>1</td>
+            <td><strong>1443</strong></td>
+            <td>技研ホールディングス</td>
+            <td>建設業</td>
+            <td style="color: #9b59b6; font-weight: bold;">249%</td>
+            <td>¥270</td>
+            <td>🔥 新高値ブレイク！</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1443" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="建設業">
+            <td>2</td>
+            <td><strong>1444</strong></td>
+            <td>ニッソウ</td>
+            <td>建設業</td>
+            <td style="color: #9b59b6; font-weight: bold;">219%</td>
+            <td>¥2,930</td>
+            <td>🎯 新高値接近中</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1444" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+          <tr data-industry="非鉄金属">
+            <td>3</td>
+            <td><strong>1491</strong></td>
+            <td>中外鉱業</td>
+            <td>非鉄金属</td>
+            <td style="color: #9b59b6; font-weight: bold;">154%</td>
+            <td>¥1,007</td>
+            <td>📊 監視中</td>
+            <td>
+              <a href="https://kabutan.jp/stock/?code=1491" target="_blank" class="stock-link">株探</a>
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+      
+    </section>
     
-    <section class="section">
+    <!-- 決算カレンダー -->
+    <section class="section" id="section-earnings">
+      <h2 class="section-title">📅 決算カレンダー（1週間以内）</h2>
+      <p class="section-subtitle">決算発表を控えている銘柄（エントリー注意）</p>
+      <p style="color: #888;">1週間以内に決算がある銘柄はありません ✅</p>
+    </section>
+    
+    <!-- 優良銘柄ランキング -->
+    <section class="section" id="section-all">
       <h2 class="section-title">⭐ 優良銘柄ランキング TOP20（スコア順）</h2>
+      <p class="section-subtitle">CANSLIM M/S/N/L要素を総合評価</p>
+      
       <div class="stock-grid">
         
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header approaching">
         <span class="stock-code">1375</span>
         <span class="stock-signal">📈 新高値更新中</span>
@@ -1024,6 +1250,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +1.1%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">0.4%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1036,7 +1274,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header approaching">
         <span class="stock-code">1430</span>
         <span class="stock-signal">📈 新高値更新中</span>
@@ -1060,6 +1298,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +10.0%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">0.0%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1072,43 +1322,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
-      <div class="stock-header approaching">
-        <span class="stock-code">1446</span>
-        <span class="stock-signal">📈 新高値更新中</span>
-      </div>
-      <div class="stock-body">
-        <div class="stock-name">キャンディル</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥566</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥568</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">99%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1446/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1446" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header forming">
         <span class="stock-code">1301</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -1132,6 +1346,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +7.5%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">1.0%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1144,7 +1370,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header forming">
         <span class="stock-code">1333</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -1168,6 +1394,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +5.7%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">1.9%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1180,7 +1418,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header forming">
         <span class="stock-code">1377</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -1204,6 +1442,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +4.7%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">1.8%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1216,17 +1466,17 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header forming">
-        <span class="stock-code">1381</span>
+        <span class="stock-code">1380</span>
         <span class="stock-signal">🎯 新高値接近中</span>
       </div>
       <div class="stock-body">
-        <div class="stock-name">アクシーズ</div>
+        <div class="stock-name">秋川牧園</div>
         <div class="stock-details">
           <div class="stock-detail">
             <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥4,135</span>
+            <span class="stock-detail-value">¥1,004</span>
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">ピボット</span>
@@ -1234,25 +1484,37 @@
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">54%</span>
+            <span class="stock-detail-value">90%</span>
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +0.9%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">1.9%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1381/" target="_blank" class="stock-link">
+        <a href="https://www.tradingview.com/symbols/TSE-1380/" target="_blank" class="stock-link">
           📈 TradingView
         </a>
-        <a href="https://kabutan.jp/stock/?code=1381" target="_blank" class="stock-link">
+        <a href="https://kabutan.jp/stock/?code=1380" target="_blank" class="stock-link">
           📊 株探
         </a>
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header forming">
         <span class="stock-code">1433</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -1276,6 +1538,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +18.4%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">2.1%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1288,7 +1562,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header forming">
         <span class="stock-code">1444</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -1312,6 +1586,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +2.7%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">0.3%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1324,7 +1610,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header forming">
         <span class="stock-code">1716</span>
         <span class="stock-signal">🎯 新高値接近中</span>
@@ -1348,6 +1634,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +2.4%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">2.9%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1360,115 +1658,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
-      <div class="stock-header forming">
-        <span class="stock-code">1719</span>
-        <span class="stock-signal">🎯 新高値接近中</span>
-      </div>
-      <div class="stock-body">
-        <div class="stock-name">安藤・間</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥1,979</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥-</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">81%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1719/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1719" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-    <div class="stock-card">
-      <div class="stock-header forming">
-        <span class="stock-code">1720</span>
-        <span class="stock-signal">🎯 新高値接近中</span>
-      </div>
-      <div class="stock-body">
-        <div class="stock-name">東急建設</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥1,339</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥-</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">46%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1720/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1720" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-    <div class="stock-card">
-      <div class="stock-header forming">
-        <span class="stock-code">1726</span>
-        <span class="stock-signal">🎯 新高値接近中</span>
-      </div>
-      <div class="stock-body">
-        <div class="stock-name">ビーアールホールディングス</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥356</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥-</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">90%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1726/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1726" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header forming">
         <span class="stock-code">1379</span>
         <span class="stock-signal">📊 監視中</span>
@@ -1492,6 +1682,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">水産・農林業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +0.1%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">4.6%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1504,43 +1706,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
-      <div class="stock-header forming">
-        <span class="stock-code">1401</span>
-        <span class="stock-signal">📊 監視中</span>
-      </div>
-      <div class="stock-body">
-        <div class="stock-name">エムビーエス</div>
-        <div class="stock-details">
-          <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥1,428</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥-</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">51%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
-          </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1401/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1401" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header forming">
         <span class="stock-code">1434</span>
         <span class="stock-signal">📊 監視中</span>
@@ -1564,6 +1730,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +5.1%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">9.7%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1576,7 +1754,7 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="建設業">
       <div class="stock-header forming">
         <span class="stock-code">1436</span>
         <span class="stock-signal">📊 監視中</span>
@@ -1600,6 +1778,18 @@
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +11.2%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">5.2%</span>
+          </div>
         </div>
       </div>
       <div class="stock-footer">
@@ -1612,17 +1802,17 @@
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="非鉄金属">
       <div class="stock-header forming">
-        <span class="stock-code">1717</span>
+        <span class="stock-code">1491</span>
         <span class="stock-signal">📊 監視中</span>
       </div>
       <div class="stock-body">
-        <div class="stock-name">明豊ファシリティワークス</div>
+        <div class="stock-name">中外鉱業</div>
         <div class="stock-details">
           <div class="stock-detail">
             <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥1,081</span>
+            <span class="stock-detail-value">¥1,007</span>
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">ピボット</span>
@@ -1630,35 +1820,47 @@
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">82%</span>
+            <span class="stock-detail-value">154%</span>
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">サービス業</span>
+            <span class="stock-detail-value">非鉄金属</span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +41.6%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">7.9%</span>
           </div>
         </div>
       </div>
       <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1717/" target="_blank" class="stock-link">
+        <a href="https://www.tradingview.com/symbols/TSE-1491/" target="_blank" class="stock-link">
           📈 TradingView
         </a>
-        <a href="https://kabutan.jp/stock/?code=1717" target="_blank" class="stock-link">
+        <a href="https://kabutan.jp/stock/?code=1491" target="_blank" class="stock-link">
           📊 株探
         </a>
       </div>
     </div>
   
-    <div class="stock-card">
+    <div class="stock-card" data-industry="水産・農林業">
       <div class="stock-header forming">
-        <span class="stock-code">1718</span>
+        <span class="stock-code">1384</span>
         <span class="stock-signal">📊 監視中</span>
       </div>
       <div class="stock-body">
-        <div class="stock-name">美樹工業</div>
+        <div class="stock-name">ホクリヨウ</div>
         <div class="stock-details">
           <div class="stock-detail">
             <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥8,600</span>
+            <span class="stock-detail-value">¥3,010</span>
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">ピボット</span>
@@ -1666,68 +1868,148 @@
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">44%</span>
+            <span class="stock-detail-value">60%</span>
+          </div>
+          <div class="stock-detail">
+            <span class="stock-detail-label">業種</span>
+            <span class="stock-detail-value">水産・農林業</span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #ff4444">
+              -2.8%
+            </span>
+          </div>
+          
+          <div class="stock-detail">
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">11.1%</span>
+          </div>
+        </div>
+      </div>
+      <div class="stock-footer">
+        <a href="https://www.tradingview.com/symbols/TSE-1384/" target="_blank" class="stock-link">
+          📈 TradingView
+        </a>
+        <a href="https://kabutan.jp/stock/?code=1384" target="_blank" class="stock-link">
+          📊 株探
+        </a>
+      </div>
+    </div>
+  
+    <div class="stock-card" data-industry="建設業">
+      <div class="stock-header breakout">
+        <span class="stock-code">1443</span>
+        <span class="stock-signal">🔥 新高値ブレイク！</span>
+      </div>
+      <div class="stock-body">
+        <div class="stock-name">技研ホールディングス</div>
+        <div class="stock-details">
+          <div class="stock-detail">
+            <span class="stock-detail-label">現在値</span>
+            <span class="stock-detail-value">¥270</span>
+          </div>
+          <div class="stock-detail">
+            <span class="stock-detail-label">ピボット</span>
+            <span class="stock-detail-value">¥275</span>
+          </div>
+          <div class="stock-detail">
+            <span class="stock-detail-label">出来高</span>
+            <span class="stock-detail-value">249%</span>
           </div>
           <div class="stock-detail">
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">建設業</span>
           </div>
-        </div>
-      </div>
-      <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1718/" target="_blank" class="stock-link">
-          📈 TradingView
-        </a>
-        <a href="https://kabutan.jp/stock/?code=1718" target="_blank" class="stock-link">
-          📊 株探
-        </a>
-      </div>
-    </div>
-  
-    <div class="stock-card">
-      <div class="stock-header forming">
-        <span class="stock-code">1724</span>
-        <span class="stock-signal">📊 監視中</span>
-      </div>
-      <div class="stock-body">
-        <div class="stock-name">シンクレイヤ</div>
-        <div class="stock-details">
+          
           <div class="stock-detail">
-            <span class="stock-detail-label">現在値</span>
-            <span class="stock-detail-value">¥716</span>
+            <span class="stock-detail-label">RS</span>
+            <span class="stock-detail-value" style="color: #00c851">
+              +16.4%
+            </span>
           </div>
+          
           <div class="stock-detail">
-            <span class="stock-detail-label">ピボット</span>
-            <span class="stock-detail-value">¥-</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">出来高</span>
-            <span class="stock-detail-value">65%</span>
-          </div>
-          <div class="stock-detail">
-            <span class="stock-detail-label">業種</span>
-            <span class="stock-detail-value">建設業</span>
+            <span class="stock-detail-label">新高値まで</span>
+            <span class="stock-detail-value">1.8%</span>
           </div>
         </div>
       </div>
       <div class="stock-footer">
-        <a href="https://www.tradingview.com/symbols/TSE-1724/" target="_blank" class="stock-link">
+        <a href="https://www.tradingview.com/symbols/TSE-1443/" target="_blank" class="stock-link">
           📈 TradingView
         </a>
-        <a href="https://kabutan.jp/stock/?code=1724" target="_blank" class="stock-link">
+        <a href="https://kabutan.jp/stock/?code=1443" target="_blank" class="stock-link">
           📊 株探
         </a>
       </div>
     </div>
   
       </div>
+      
     </section>
-    
     
     <footer>
       <p>⚠️ このレポートは投資助言ではありません。投資判断は自己責任でお願いします。</p>
       <p>CANSLIM C/A/I要素は手動で確認してください。</p>
+      <p style="margin-top: 10px; font-size: 0.75rem;">Generated by CANSLIM Stock Screener</p>
     </footer>
   </div>
+  
+  <script>
+    // セクション表示切り替え
+    function showSection(section) {
+      // タブのアクティブ状態を更新
+      document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      // 全セクションを表示
+      const sections = ['market', 'industry', 'breakouts', 'approaching', 'forming', 'rs', 'volume', 'earnings', 'all'];
+      
+      if (section === 'all') {
+        sections.forEach(s => {
+          const el = document.getElementById('section-' + s);
+          if (el) el.style.display = 'block';
+        });
+      } else {
+        sections.forEach(s => {
+          const el = document.getElementById('section-' + s);
+          if (el) {
+            if (s === section || s === 'market') {
+              el.style.display = 'block';
+            } else {
+              el.style.display = 'none';
+            }
+          }
+        });
+      }
+    }
+    
+    // 業種フィルター
+    function filterByIndustry() {
+      const selected = document.getElementById('industryFilter').value;
+      
+      // 銘柄カードのフィルター
+      document.querySelectorAll('.stock-card').forEach(card => {
+        const industry = card.dataset.industry;
+        if (!selected || industry === selected) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+      
+      // テーブル行のフィルター
+      document.querySelectorAll('.ranking-table tbody tr').forEach(row => {
+        const industry = row.dataset.industry;
+        if (!selected || industry === selected) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+  </script>
 </body>
 </html>

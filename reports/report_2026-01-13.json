@@ -18,42 +18,42 @@
   "industryRankings": [
     {
       "rank": 1,
-      "industry": "建設業",
-      "performance": 7.21,
-      "volumeGrowth": 23.2,
-      "newHighCount": 11,
-      "stockCount": 19,
+      "industry": "非鉄金属",
+      "performance": 41.63,
+      "volumeGrowth": 73.6,
+      "newHighCount": 0,
+      "stockCount": 1,
       "topPerformers": [
         {
-          "code": "1723",
-          "name": "日本電技",
-          "rs": 22.39657631954351
-        },
-        {
-          "code": "1736",
-          "name": "オーテック",
-          "rs": 18.577981651376145
-        },
-        {
-          "code": "1433",
-          "name": "ベステラ",
-          "rs": 18.41620626151013
+          "code": "1491",
+          "name": "中外鉱業",
+          "rs": 41.63150492264416
         }
       ],
       "isTop20": true
     },
     {
       "rank": 2,
-      "industry": "サービス業",
-      "performance": 3.54,
-      "volumeGrowth": 97.4,
-      "newHighCount": 0,
-      "stockCount": 1,
+      "industry": "建設業",
+      "performance": 6.08,
+      "volumeGrowth": 30.3,
+      "newHighCount": 4,
+      "stockCount": 9,
       "topPerformers": [
         {
-          "code": "1717",
-          "name": "明豊ファシリティワークス",
-          "rs": 3.5440613026819925
+          "code": "1433",
+          "name": "ベステラ",
+          "rs": 18.41620626151013
+        },
+        {
+          "code": "1443",
+          "name": "技研ホールディングス",
+          "rs": 16.379310344827587
+        },
+        {
+          "code": "1436",
+          "name": "グリーンエナジー＆カンパニー",
+          "rs": 11.152073732718893
         }
       ],
       "isTop20": true
@@ -61,10 +61,10 @@
     {
       "rank": 3,
       "industry": "水産・農林業",
-      "performance": 1.04,
-      "volumeGrowth": 38.6,
+      "performance": 1.23,
+      "volumeGrowth": 36.5,
       "newHighCount": 5,
-      "stockCount": 9,
+      "stockCount": 10,
       "topPerformers": [
         {
           "code": "1301",
@@ -102,11 +102,11 @@
     }
   ],
   "summary": {
-    "totalAnalyzed": 30,
-    "totalPassed": 25,
-    "breakouts": 4,
-    "approaching": 3,
-    "forming": 10,
+    "totalAnalyzed": 21,
+    "totalPassed": 15,
+    "breakouts": 1,
+    "approaching": 2,
+    "forming": 7,
     "earningsWarnings": 0
   },
   "candidates": {
@@ -155,12 +155,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 16.38,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 16.4%"
+            "rsPercentile": 67,
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 16.4%"
           },
           "pattern": {
             "detected": false,
@@ -175,208 +175,7 @@
         "reasons": [
           "S: 50日EMA上 (+10.82%), 出来高 249%",
           "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 16.4%"
-        ]
-      },
-      {
-        "code": "1721",
-        "name": "コムシスホールディングス",
-        "industry": "建設業",
-        "currentPrice": 4714,
-        "score": 70,
-        "signal": "BREAKOUT",
-        "signalMessage": "🔥 新高値ブレイク！",
-        "pivotPrice": 4726,
-        "buyZoneMax": null,
-        "distanceToPivot": 0.25,
-        "volumeRatio": 1.72,
-        "volumeConfirmed": true,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 4271,
-            "currentPrice": 4714,
-            "distanceFromEMA50": 10.38,
-            "volumeRatio": 1.72,
-            "volumeConfirmed": true,
-            "avgVolume50": 457288,
-            "currentVolume": 785600,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+10.38%), 出来高 172%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": true,
-            "isNear52WeekHigh": true,
-            "high52Week": 4726,
-            "low52Week": 3703,
-            "currentPrice": 4714,
-            "distanceFromHigh": 0.25,
-            "distanceFromLow": 27.3,
-            "rangePosition": 98.8,
-            "summary": "🔥 52週新高値更新!"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 10.14,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 10.1%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+10.38%), 出来高 172%",
-          "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 10.1%"
-        ]
-      },
-      {
-        "code": "1723",
-        "name": "日本電技",
-        "industry": "建設業",
-        "currentPrice": 8580,
-        "score": 70,
-        "signal": "BREAKOUT",
-        "signalMessage": "🔥 新高値ブレイク！",
-        "pivotPrice": 8620,
-        "buyZoneMax": null,
-        "distanceToPivot": 0.46,
-        "volumeRatio": 1.5,
-        "volumeConfirmed": true,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 6837,
-            "currentPrice": 8580,
-            "distanceFromEMA50": 25.49,
-            "volumeRatio": 1.5,
-            "volumeConfirmed": true,
-            "avgVolume50": 47800,
-            "currentVolume": 71900,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+25.49%), 出来高 150%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": true,
-            "isNear52WeekHigh": true,
-            "high52Week": 8620,
-            "low52Week": 5010,
-            "currentPrice": 8580,
-            "distanceFromHigh": 0.46,
-            "distanceFromLow": 71.26,
-            "rangePosition": 98.9,
-            "summary": "🔥 52週新高値更新!"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 22.4,
-            "rsPercentile": 100,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 22.4%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+25.49%), 出来高 150%",
-          "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 22.4%"
-        ]
-      },
-      {
-        "code": "1736",
-        "name": "オーテック",
-        "industry": "建設業",
-        "currentPrice": 2585,
-        "score": 70,
-        "signal": "BREAKOUT",
-        "signalMessage": "🔥 新高値ブレイク！",
-        "pivotPrice": 2650,
-        "buyZoneMax": null,
-        "distanceToPivot": 2.45,
-        "volumeRatio": 1.63,
-        "volumeConfirmed": true,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 2195,
-            "currentPrice": 2585,
-            "distanceFromEMA50": 17.78,
-            "volumeRatio": 1.63,
-            "volumeConfirmed": true,
-            "avgVolume50": 7562,
-            "currentVolume": 12300,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+17.78%), 出来高 163%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": true,
-            "isNear52WeekHigh": true,
-            "high52Week": 2650,
-            "low52Week": 1728,
-            "currentPrice": 2585,
-            "distanceFromHigh": 2.45,
-            "distanceFromLow": 49.59,
-            "rangePosition": 93,
-            "summary": "🔥 52週新高値更新!"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 18.58,
-            "rsPercentile": 67,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 18.6%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+17.78%), 出来高 163%",
-          "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 18.6%"
+          "L: 業種ランク #2 (建設業), RS: 16.4%"
         ]
       }
     ],
@@ -429,7 +228,7 @@
             "isTop20Industry": true,
             "stockRS": 1.05,
             "rsPercentile": 0,
-            "industryPerformance": 1.04,
+            "industryPerformance": 1.23,
             "summary": "業種ランク #3 (水産・農林業), RS: 1.1%"
           },
           "pattern": {
@@ -492,12 +291,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 10.04,
             "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 10.0%"
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 10.0%"
           },
           "pattern": {
             "detected": false,
@@ -512,74 +311,7 @@
         "reasons": [
           "S: 50日EMA上 (+6.94%), 出来高 78%",
           "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 10.0%"
-        ]
-      },
-      {
-        "code": "1446",
-        "name": "キャンディル",
-        "industry": "建設業",
-        "currentPrice": 566,
-        "score": 70,
-        "signal": "APPROACHING",
-        "signalMessage": "📈 新高値更新中",
-        "pivotPrice": 568,
-        "buyZoneMax": null,
-        "distanceToPivot": 0.35,
-        "volumeRatio": 0.99,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 553,
-            "currentPrice": 566,
-            "distanceFromEMA50": 2.43,
-            "volumeRatio": 0.99,
-            "volumeConfirmed": false,
-            "avgVolume50": 6366,
-            "currentVolume": 6300,
-            "handleVolumeDecreasing": true,
-            "summary": "50日EMA上 (+2.43%), 出来高 99%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": true,
-            "isNear52WeekHigh": true,
-            "high52Week": 568,
-            "low52Week": 538,
-            "currentPrice": 566,
-            "distanceFromHigh": 0.35,
-            "distanceFromLow": 5.2,
-            "rangePosition": 93.3,
-            "summary": "🔥 52週新高値更新!"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 1.98,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 2.0%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+2.43%), 出来高 99%",
-          "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 2.0%"
+          "L: 業種ランク #2 (建設業), RS: 10.0%"
         ]
       }
     ],
@@ -632,7 +364,7 @@
             "isTop20Industry": true,
             "stockRS": 7.49,
             "rsPercentile": 100,
-            "industryPerformance": 1.04,
+            "industryPerformance": 1.23,
             "summary": "業種ランク #3 (水産・農林業), RS: 7.5%"
           },
           "pattern": {
@@ -699,7 +431,7 @@
             "isTop20Industry": true,
             "stockRS": 5.72,
             "rsPercentile": 67,
-            "industryPerformance": 1.04,
+            "industryPerformance": 1.23,
             "summary": "業種ランク #3 (水産・農林業), RS: 5.7%"
           },
           "pattern": {
@@ -766,7 +498,7 @@
             "isTop20Industry": true,
             "stockRS": 4.71,
             "rsPercentile": 33,
-            "industryPerformance": 1.04,
+            "industryPerformance": 1.23,
             "summary": "業種ランク #3 (水産・農林業), RS: 4.7%"
           },
           "pattern": {
@@ -786,17 +518,17 @@
         ]
       },
       {
-        "code": "1381",
-        "name": "アクシーズ",
+        "code": "1380",
+        "name": "秋川牧園",
         "industry": "水産・農林業",
-        "currentPrice": 4135,
+        "currentPrice": 1004,
         "score": 70,
         "signal": "FORMING",
         "signalMessage": "🎯 新高値接近中",
         "pivotPrice": null,
         "buyZoneMax": null,
-        "distanceToPivot": 1.55,
-        "volumeRatio": 0.54,
+        "distanceToPivot": 1.95,
+        "volumeRatio": 0.9,
         "volumeConfirmed": false,
         "earningsRisk": "UNKNOWN",
         "earningsMessage": "決算情報なし",
@@ -804,37 +536,37 @@
           "supplyDemand": {
             "passed": true,
             "aboveEMA50": true,
-            "ema50": 3911,
-            "currentPrice": 4135,
-            "distanceFromEMA50": 5.73,
-            "volumeRatio": 0.54,
+            "ema50": 999,
+            "currentPrice": 1004,
+            "distanceFromEMA50": 0.45,
+            "volumeRatio": 0.9,
             "volumeConfirmed": false,
-            "avgVolume50": 5330,
-            "currentVolume": 2900,
+            "avgVolume50": 1776,
+            "currentVolume": 1600,
             "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+5.73%), 出来高 54%"
+            "summary": "50日EMA上 (+0.45%), 出来高 90%"
           },
           "newHighs": {
             "passed": true,
             "isAtNewHigh": false,
             "isNear52WeekHigh": true,
-            "high52Week": 4200,
-            "low52Week": 3050,
-            "currentPrice": 4135,
-            "distanceFromHigh": 1.55,
-            "distanceFromLow": 35.57,
-            "rangePosition": 94.3,
-            "summary": "新高値まで 1.5%"
+            "high52Week": 1024,
+            "low52Week": 981,
+            "currentPrice": 1004,
+            "distanceFromHigh": 1.95,
+            "distanceFromLow": 2.34,
+            "rangePosition": 53.5,
+            "summary": "新高値まで 2.0%"
           },
           "leader": {
             "passed": true,
             "industry": "水産・農林業",
             "industryRank": 3,
             "isTop20Industry": true,
-            "stockRS": -0.24,
+            "stockRS": 0.9,
             "rsPercentile": 0,
-            "industryPerformance": 1.04,
-            "summary": "業種ランク #3 (水産・農林業), RS: -0.2%"
+            "industryPerformance": 1.23,
+            "summary": "業種ランク #3 (水産・農林業), RS: 0.9%"
           },
           "pattern": {
             "detected": false,
@@ -847,9 +579,9 @@
           }
         },
         "reasons": [
-          "S: 50日EMA上 (+5.73%), 出来高 54%",
-          "N: 新高値まで 1.5%",
-          "L: 業種ランク #3 (水産・農林業), RS: -0.2%"
+          "S: 50日EMA上 (+0.45%), 出来高 90%",
+          "N: 新高値まで 2.0%",
+          "L: 業種ランク #3 (水産・農林業), RS: 0.9%"
         ]
       },
       {
@@ -896,12 +628,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 18.42,
-            "rsPercentile": 33,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 18.4%"
+            "rsPercentile": 100,
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 18.4%"
           },
           "pattern": {
             "detected": false,
@@ -916,7 +648,7 @@
         "reasons": [
           "S: 50日EMA上 (+11.17%), 出来高 93%",
           "N: 新高値まで 2.1%",
-          "L: 業種ランク #1 (建設業), RS: 18.4%"
+          "L: 業種ランク #2 (建設業), RS: 18.4%"
         ]
       },
       {
@@ -963,12 +695,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 2.73,
             "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 2.7%"
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 2.7%"
           },
           "pattern": {
             "detected": false,
@@ -983,7 +715,7 @@
         "reasons": [
           "S: 50日EMA上 (+2.15%), 出来高 219%",
           "N: 新高値まで 0.3%",
-          "L: 業種ランク #1 (建設業), RS: 2.7%"
+          "L: 業種ランク #2 (建設業), RS: 2.7%"
         ]
       },
       {
@@ -1030,12 +762,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 2.35,
             "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 2.3%"
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 2.3%"
           },
           "pattern": {
             "detected": false,
@@ -1050,208 +782,7 @@
         "reasons": [
           "S: 50日EMA上 (+2.14%), 出来高 65%",
           "N: 新高値まで 2.9%",
-          "L: 業種ランク #1 (建設業), RS: 2.3%"
-        ]
-      },
-      {
-        "code": "1719",
-        "name": "安藤・間",
-        "industry": "建設業",
-        "currentPrice": 1979,
-        "score": 70,
-        "signal": "FORMING",
-        "signalMessage": "🎯 新高値接近中",
-        "pivotPrice": null,
-        "buyZoneMax": null,
-        "distanceToPivot": 0.8,
-        "volumeRatio": 0.81,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 1835,
-            "currentPrice": 1979,
-            "distanceFromEMA50": 7.86,
-            "volumeRatio": 0.81,
-            "volumeConfirmed": false,
-            "avgVolume50": 774164,
-            "currentVolume": 627500,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+7.86%), 出来高 81%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": false,
-            "isNear52WeekHigh": true,
-            "high52Week": 1995,
-            "low52Week": 1672,
-            "currentPrice": 1979,
-            "distanceFromHigh": 0.8,
-            "distanceFromLow": 18.36,
-            "rangePosition": 95,
-            "summary": "新高値まで 0.8%"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 6.54,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 6.5%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+7.86%), 出来高 81%",
-          "N: 新高値まで 0.8%",
-          "L: 業種ランク #1 (建設業), RS: 6.5%"
-        ]
-      },
-      {
-        "code": "1720",
-        "name": "東急建設",
-        "industry": "建設業",
-        "currentPrice": 1339,
-        "score": 70,
-        "signal": "FORMING",
-        "signalMessage": "🎯 新高値接近中",
-        "pivotPrice": null,
-        "buyZoneMax": null,
-        "distanceToPivot": 2.26,
-        "volumeRatio": 0.46,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 1221,
-            "currentPrice": 1339,
-            "distanceFromEMA50": 9.63,
-            "volumeRatio": 0.46,
-            "volumeConfirmed": false,
-            "avgVolume50": 368342,
-            "currentVolume": 168600,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+9.63%), 出来高 46%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": false,
-            "isNear52WeekHigh": true,
-            "high52Week": 1370,
-            "low52Week": 1025,
-            "currentPrice": 1339,
-            "distanceFromHigh": 2.26,
-            "distanceFromLow": 30.63,
-            "rangePosition": 91,
-            "summary": "新高値まで 2.3%"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 3,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 3.0%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+9.63%), 出来高 46%",
-          "N: 新高値まで 2.3%",
-          "L: 業種ランク #1 (建設業), RS: 3.0%"
-        ]
-      },
-      {
-        "code": "1726",
-        "name": "ビーアールホールディングス",
-        "industry": "建設業",
-        "currentPrice": 356,
-        "score": 70,
-        "signal": "FORMING",
-        "signalMessage": "🎯 新高値接近中",
-        "pivotPrice": null,
-        "buyZoneMax": null,
-        "distanceToPivot": 0.84,
-        "volumeRatio": 0.9,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 338,
-            "currentPrice": 356,
-            "distanceFromEMA50": 5.29,
-            "volumeRatio": 0.9,
-            "volumeConfirmed": false,
-            "avgVolume50": 83640,
-            "currentVolume": 75500,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+5.29%), 出来高 90%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": false,
-            "isNear52WeekHigh": true,
-            "high52Week": 359,
-            "low52Week": 326,
-            "currentPrice": 356,
-            "distanceFromHigh": 0.84,
-            "distanceFromLow": 9.2,
-            "rangePosition": 90.9,
-            "summary": "新高値まで 0.8%"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 8.21,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 8.2%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+5.29%), 出来高 90%",
-          "N: 新高値まで 0.8%",
-          "L: 業種ランク #1 (建設業), RS: 8.2%"
+          "L: 業種ランク #2 (建設業), RS: 2.3%"
         ]
       }
     ],
@@ -1304,7 +835,7 @@
             "isTop20Industry": true,
             "stockRS": 1.05,
             "rsPercentile": 0,
-            "industryPerformance": 1.04,
+            "industryPerformance": 1.23,
             "summary": "業種ランク #3 (水産・農林業), RS: 1.1%"
           },
           "pattern": {
@@ -1367,12 +898,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 10.04,
             "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 10.0%"
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 10.0%"
           },
           "pattern": {
             "detected": false,
@@ -1387,74 +918,7 @@
         "reasons": [
           "S: 50日EMA上 (+6.94%), 出来高 78%",
           "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 10.0%"
-        ]
-      },
-      {
-        "code": "1446",
-        "name": "キャンディル",
-        "industry": "建設業",
-        "currentPrice": 566,
-        "score": 70,
-        "signal": "APPROACHING",
-        "signalMessage": "📈 新高値更新中",
-        "pivotPrice": 568,
-        "buyZoneMax": null,
-        "distanceToPivot": 0.35,
-        "volumeRatio": 0.99,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 553,
-            "currentPrice": 566,
-            "distanceFromEMA50": 2.43,
-            "volumeRatio": 0.99,
-            "volumeConfirmed": false,
-            "avgVolume50": 6366,
-            "currentVolume": 6300,
-            "handleVolumeDecreasing": true,
-            "summary": "50日EMA上 (+2.43%), 出来高 99%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": true,
-            "isNear52WeekHigh": true,
-            "high52Week": 568,
-            "low52Week": 538,
-            "currentPrice": 566,
-            "distanceFromHigh": 0.35,
-            "distanceFromLow": 5.2,
-            "rangePosition": 93.3,
-            "summary": "🔥 52週新高値更新!"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 1.98,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 2.0%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+2.43%), 出来高 99%",
-          "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 2.0%"
+          "L: 業種ランク #2 (建設業), RS: 10.0%"
         ]
       },
       {
@@ -1505,7 +969,7 @@
             "isTop20Industry": true,
             "stockRS": 7.49,
             "rsPercentile": 100,
-            "industryPerformance": 1.04,
+            "industryPerformance": 1.23,
             "summary": "業種ランク #3 (水産・農林業), RS: 7.5%"
           },
           "pattern": {
@@ -1572,7 +1036,7 @@
             "isTop20Industry": true,
             "stockRS": 5.72,
             "rsPercentile": 67,
-            "industryPerformance": 1.04,
+            "industryPerformance": 1.23,
             "summary": "業種ランク #3 (水産・農林業), RS: 5.7%"
           },
           "pattern": {
@@ -1639,7 +1103,7 @@
             "isTop20Industry": true,
             "stockRS": 4.71,
             "rsPercentile": 33,
-            "industryPerformance": 1.04,
+            "industryPerformance": 1.23,
             "summary": "業種ランク #3 (水産・農林業), RS: 4.7%"
           },
           "pattern": {
@@ -1659,17 +1123,17 @@
         ]
       },
       {
-        "code": "1381",
-        "name": "アクシーズ",
+        "code": "1380",
+        "name": "秋川牧園",
         "industry": "水産・農林業",
-        "currentPrice": 4135,
+        "currentPrice": 1004,
         "score": 70,
         "signal": "FORMING",
         "signalMessage": "🎯 新高値接近中",
         "pivotPrice": null,
         "buyZoneMax": null,
-        "distanceToPivot": 1.55,
-        "volumeRatio": 0.54,
+        "distanceToPivot": 1.95,
+        "volumeRatio": 0.9,
         "volumeConfirmed": false,
         "earningsRisk": "UNKNOWN",
         "earningsMessage": "決算情報なし",
@@ -1677,37 +1141,37 @@
           "supplyDemand": {
             "passed": true,
             "aboveEMA50": true,
-            "ema50": 3911,
-            "currentPrice": 4135,
-            "distanceFromEMA50": 5.73,
-            "volumeRatio": 0.54,
+            "ema50": 999,
+            "currentPrice": 1004,
+            "distanceFromEMA50": 0.45,
+            "volumeRatio": 0.9,
             "volumeConfirmed": false,
-            "avgVolume50": 5330,
-            "currentVolume": 2900,
+            "avgVolume50": 1776,
+            "currentVolume": 1600,
             "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+5.73%), 出来高 54%"
+            "summary": "50日EMA上 (+0.45%), 出来高 90%"
           },
           "newHighs": {
             "passed": true,
             "isAtNewHigh": false,
             "isNear52WeekHigh": true,
-            "high52Week": 4200,
-            "low52Week": 3050,
-            "currentPrice": 4135,
-            "distanceFromHigh": 1.55,
-            "distanceFromLow": 35.57,
-            "rangePosition": 94.3,
-            "summary": "新高値まで 1.5%"
+            "high52Week": 1024,
+            "low52Week": 981,
+            "currentPrice": 1004,
+            "distanceFromHigh": 1.95,
+            "distanceFromLow": 2.34,
+            "rangePosition": 53.5,
+            "summary": "新高値まで 2.0%"
           },
           "leader": {
             "passed": true,
             "industry": "水産・農林業",
             "industryRank": 3,
             "isTop20Industry": true,
-            "stockRS": -0.24,
+            "stockRS": 0.9,
             "rsPercentile": 0,
-            "industryPerformance": 1.04,
-            "summary": "業種ランク #3 (水産・農林業), RS: -0.2%"
+            "industryPerformance": 1.23,
+            "summary": "業種ランク #3 (水産・農林業), RS: 0.9%"
           },
           "pattern": {
             "detected": false,
@@ -1720,9 +1184,9 @@
           }
         },
         "reasons": [
-          "S: 50日EMA上 (+5.73%), 出来高 54%",
-          "N: 新高値まで 1.5%",
-          "L: 業種ランク #3 (水産・農林業), RS: -0.2%"
+          "S: 50日EMA上 (+0.45%), 出来高 90%",
+          "N: 新高値まで 2.0%",
+          "L: 業種ランク #3 (水産・農林業), RS: 0.9%"
         ]
       },
       {
@@ -1769,12 +1233,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 18.42,
-            "rsPercentile": 33,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 18.4%"
+            "rsPercentile": 100,
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 18.4%"
           },
           "pattern": {
             "detected": false,
@@ -1789,7 +1253,7 @@
         "reasons": [
           "S: 50日EMA上 (+11.17%), 出来高 93%",
           "N: 新高値まで 2.1%",
-          "L: 業種ランク #1 (建設業), RS: 18.4%"
+          "L: 業種ランク #2 (建設業), RS: 18.4%"
         ]
       },
       {
@@ -1836,12 +1300,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 2.73,
             "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 2.7%"
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 2.7%"
           },
           "pattern": {
             "detected": false,
@@ -1856,7 +1320,7 @@
         "reasons": [
           "S: 50日EMA上 (+2.15%), 出来高 219%",
           "N: 新高値まで 0.3%",
-          "L: 業種ランク #1 (建設業), RS: 2.7%"
+          "L: 業種ランク #2 (建設業), RS: 2.7%"
         ]
       },
       {
@@ -1903,12 +1367,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 2.35,
             "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 2.3%"
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 2.3%"
           },
           "pattern": {
             "detected": false,
@@ -1923,208 +1387,7 @@
         "reasons": [
           "S: 50日EMA上 (+2.14%), 出来高 65%",
           "N: 新高値まで 2.9%",
-          "L: 業種ランク #1 (建設業), RS: 2.3%"
-        ]
-      },
-      {
-        "code": "1719",
-        "name": "安藤・間",
-        "industry": "建設業",
-        "currentPrice": 1979,
-        "score": 70,
-        "signal": "FORMING",
-        "signalMessage": "🎯 新高値接近中",
-        "pivotPrice": null,
-        "buyZoneMax": null,
-        "distanceToPivot": 0.8,
-        "volumeRatio": 0.81,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 1835,
-            "currentPrice": 1979,
-            "distanceFromEMA50": 7.86,
-            "volumeRatio": 0.81,
-            "volumeConfirmed": false,
-            "avgVolume50": 774164,
-            "currentVolume": 627500,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+7.86%), 出来高 81%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": false,
-            "isNear52WeekHigh": true,
-            "high52Week": 1995,
-            "low52Week": 1672,
-            "currentPrice": 1979,
-            "distanceFromHigh": 0.8,
-            "distanceFromLow": 18.36,
-            "rangePosition": 95,
-            "summary": "新高値まで 0.8%"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 6.54,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 6.5%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+7.86%), 出来高 81%",
-          "N: 新高値まで 0.8%",
-          "L: 業種ランク #1 (建設業), RS: 6.5%"
-        ]
-      },
-      {
-        "code": "1720",
-        "name": "東急建設",
-        "industry": "建設業",
-        "currentPrice": 1339,
-        "score": 70,
-        "signal": "FORMING",
-        "signalMessage": "🎯 新高値接近中",
-        "pivotPrice": null,
-        "buyZoneMax": null,
-        "distanceToPivot": 2.26,
-        "volumeRatio": 0.46,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 1221,
-            "currentPrice": 1339,
-            "distanceFromEMA50": 9.63,
-            "volumeRatio": 0.46,
-            "volumeConfirmed": false,
-            "avgVolume50": 368342,
-            "currentVolume": 168600,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+9.63%), 出来高 46%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": false,
-            "isNear52WeekHigh": true,
-            "high52Week": 1370,
-            "low52Week": 1025,
-            "currentPrice": 1339,
-            "distanceFromHigh": 2.26,
-            "distanceFromLow": 30.63,
-            "rangePosition": 91,
-            "summary": "新高値まで 2.3%"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 3,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 3.0%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+9.63%), 出来高 46%",
-          "N: 新高値まで 2.3%",
-          "L: 業種ランク #1 (建設業), RS: 3.0%"
-        ]
-      },
-      {
-        "code": "1726",
-        "name": "ビーアールホールディングス",
-        "industry": "建設業",
-        "currentPrice": 356,
-        "score": 70,
-        "signal": "FORMING",
-        "signalMessage": "🎯 新高値接近中",
-        "pivotPrice": null,
-        "buyZoneMax": null,
-        "distanceToPivot": 0.84,
-        "volumeRatio": 0.9,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 338,
-            "currentPrice": 356,
-            "distanceFromEMA50": 5.29,
-            "volumeRatio": 0.9,
-            "volumeConfirmed": false,
-            "avgVolume50": 83640,
-            "currentVolume": 75500,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+5.29%), 出来高 90%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": false,
-            "isNear52WeekHigh": true,
-            "high52Week": 359,
-            "low52Week": 326,
-            "currentPrice": 356,
-            "distanceFromHigh": 0.84,
-            "distanceFromLow": 9.2,
-            "rangePosition": 90.9,
-            "summary": "新高値まで 0.8%"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 8.21,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 8.2%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+5.29%), 出来高 90%",
-          "N: 新高値まで 0.8%",
-          "L: 業種ランク #1 (建設業), RS: 8.2%"
+          "L: 業種ランク #2 (建設業), RS: 2.3%"
         ]
       },
       {
@@ -2175,7 +1438,7 @@
             "isTop20Industry": true,
             "stockRS": 0.1,
             "rsPercentile": 0,
-            "industryPerformance": 1.04,
+            "industryPerformance": 1.23,
             "summary": "業種ランク #3 (水産・農林業), RS: 0.1%"
           },
           "pattern": {
@@ -2192,93 +1455,6 @@
           "S: 50日EMA上 (+2.41%), 出来高 113%",
           "N: 新高値まで 4.6%",
           "L: 業種ランク #3 (水産・農林業), RS: 0.1%"
-        ]
-      },
-      {
-        "code": "1401",
-        "name": "エムビーエス",
-        "industry": "建設業",
-        "currentPrice": 1428,
-        "score": 70,
-        "signal": "WATCHING",
-        "signalMessage": "📊 監視中",
-        "pivotPrice": null,
-        "buyZoneMax": null,
-        "distanceToPivot": 4.29,
-        "volumeRatio": 0.51,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 1341,
-            "currentPrice": 1428,
-            "distanceFromEMA50": 6.5,
-            "volumeRatio": 0.51,
-            "volumeConfirmed": false,
-            "avgVolume50": 12740,
-            "currentVolume": 6500,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+6.50%), 出来高 51%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": false,
-            "isNear52WeekHigh": true,
-            "high52Week": 1492,
-            "low52Week": 1200,
-            "currentPrice": 1428,
-            "distanceFromHigh": 4.29,
-            "distanceFromLow": 19,
-            "rangePosition": 78.1,
-            "summary": "新高値まで 4.3%"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 9.43,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 9.4%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "ハンドルパターンが見つかりません",
-            "cupData": {
-              "detected": true,
-              "leftHigh": {
-                "index": 19,
-                "price": 1450,
-                "date": "2025-11-13"
-              },
-              "cupBottom": {
-                "index": 26,
-                "price": 1200,
-                "date": "2025-11-25"
-              },
-              "rightHigh": {
-                "index": 56,
-                "price": 1438,
-                "date": "2026-01-09"
-              },
-              "cupDepth": 17.24,
-              "baseDays": 37
-            }
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+6.50%), 出来高 51%",
-          "N: 新高値まで 4.3%",
-          "L: 業種ランク #1 (建設業), RS: 9.4%"
         ]
       },
       {
@@ -2325,12 +1501,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 5.11,
             "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 5.1%"
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 5.1%"
           },
           "pattern": {
             "detected": false,
@@ -2345,7 +1521,7 @@
         "reasons": [
           "S: 50日EMA上 (+2.66%), 出来高 82%",
           "N: 新高値まで 9.7%",
-          "L: 業種ランク #1 (建設業), RS: 5.1%"
+          "L: 業種ランク #2 (建設業), RS: 5.1%"
         ]
       },
       {
@@ -2392,12 +1568,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 11.15,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 11.2%"
+            "rsPercentile": 33,
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 11.2%"
           },
           "pattern": {
             "detected": false,
@@ -2412,59 +1588,59 @@
         "reasons": [
           "S: 50日EMA上 (+5.43%), 出来高 54%",
           "N: 新高値まで 5.2%",
-          "L: 業種ランク #1 (建設業), RS: 11.2%"
+          "L: 業種ランク #2 (建設業), RS: 11.2%"
         ]
       },
       {
-        "code": "1717",
-        "name": "明豊ファシリティワークス",
-        "industry": "サービス業",
-        "currentPrice": 1081,
+        "code": "1491",
+        "name": "中外鉱業",
+        "industry": "非鉄金属",
+        "currentPrice": 1007,
         "score": 70,
         "signal": "WATCHING",
         "signalMessage": "📊 監視中",
         "pivotPrice": null,
         "buyZoneMax": null,
-        "distanceToPivot": 3.31,
-        "volumeRatio": 0.82,
-        "volumeConfirmed": false,
+        "distanceToPivot": 7.87,
+        "volumeRatio": 1.54,
+        "volumeConfirmed": true,
         "earningsRisk": "UNKNOWN",
         "earningsMessage": "決算情報なし",
         "analysis": {
           "supplyDemand": {
             "passed": true,
             "aboveEMA50": true,
-            "ema50": 1077,
-            "currentPrice": 1081,
-            "distanceFromEMA50": 0.39,
-            "volumeRatio": 0.82,
-            "volumeConfirmed": false,
-            "avgVolume50": 21358,
-            "currentVolume": 17500,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+0.39%), 出来高 82%"
+            "ema50": 850,
+            "currentPrice": 1007,
+            "distanceFromEMA50": 18.41,
+            "volumeRatio": 1.54,
+            "volumeConfirmed": true,
+            "avgVolume50": 196628,
+            "currentVolume": 301900,
+            "handleVolumeDecreasing": true,
+            "summary": "50日EMA上 (+18.41%), 出来高 154%"
           },
           "newHighs": {
             "passed": true,
             "isAtNewHigh": false,
             "isNear52WeekHigh": true,
-            "high52Week": 1118,
-            "low52Week": 1011,
-            "currentPrice": 1081,
-            "distanceFromHigh": 3.31,
-            "distanceFromLow": 6.92,
-            "rangePosition": 65.4,
-            "summary": "新高値まで 3.3%"
+            "high52Week": 1093,
+            "low52Week": 697,
+            "currentPrice": 1007,
+            "distanceFromHigh": 7.87,
+            "distanceFromLow": 44.48,
+            "rangePosition": 78.3,
+            "summary": "新高値まで 7.9%"
           },
           "leader": {
             "passed": true,
-            "industry": "サービス業",
-            "industryRank": 2,
+            "industry": "非鉄金属",
+            "industryRank": 1,
             "isTop20Industry": true,
-            "stockRS": 3.54,
+            "stockRS": 41.63,
             "rsPercentile": 100,
-            "industryPerformance": 3.54,
-            "summary": "業種ランク #2 (サービス業), RS: 3.5%"
+            "industryPerformance": 41.63,
+            "summary": "業種ランク #1 (非鉄金属), RS: 41.6%"
           },
           "pattern": {
             "detected": false,
@@ -2477,143 +1653,9 @@
           }
         },
         "reasons": [
-          "S: 50日EMA上 (+0.39%), 出来高 82%",
-          "N: 新高値まで 3.3%",
-          "L: 業種ランク #2 (サービス業), RS: 3.5%"
-        ]
-      },
-      {
-        "code": "1718",
-        "name": "美樹工業",
-        "industry": "建設業",
-        "currentPrice": 8600,
-        "score": 70,
-        "signal": "WATCHING",
-        "signalMessage": "📊 監視中",
-        "pivotPrice": null,
-        "buyZoneMax": null,
-        "distanceToPivot": 5.08,
-        "volumeRatio": 0.44,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 8407,
-            "currentPrice": 8600,
-            "distanceFromEMA50": 2.3,
-            "volumeRatio": 0.44,
-            "volumeConfirmed": false,
-            "avgVolume50": 5402,
-            "currentVolume": 2400,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+2.30%), 出来高 44%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": false,
-            "isNear52WeekHigh": true,
-            "high52Week": 9060,
-            "low52Week": 7490,
-            "currentPrice": 8600,
-            "distanceFromHigh": 5.08,
-            "distanceFromLow": 14.82,
-            "rangePosition": 70.7,
-            "summary": "新高値まで 5.1%"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 1.9,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 1.9%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+2.30%), 出来高 44%",
-          "N: 新高値まで 5.1%",
-          "L: 業種ランク #1 (建設業), RS: 1.9%"
-        ]
-      },
-      {
-        "code": "1724",
-        "name": "シンクレイヤ",
-        "industry": "建設業",
-        "currentPrice": 716,
-        "score": 70,
-        "signal": "WATCHING",
-        "signalMessage": "📊 監視中",
-        "pivotPrice": null,
-        "buyZoneMax": null,
-        "distanceToPivot": 3.37,
-        "volumeRatio": 0.65,
-        "volumeConfirmed": false,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 703,
-            "currentPrice": 716,
-            "distanceFromEMA50": 1.84,
-            "volumeRatio": 0.65,
-            "volumeConfirmed": false,
-            "avgVolume50": 8954,
-            "currentVolume": 5800,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+1.84%), 出来高 65%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": false,
-            "isNear52WeekHigh": true,
-            "high52Week": 741,
-            "low52Week": 680,
-            "currentPrice": 716,
-            "distanceFromHigh": 3.37,
-            "distanceFromLow": 5.29,
-            "rangePosition": 59,
-            "summary": "新高値まで 3.4%"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 0.14,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 0.1%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+1.84%), 出来高 65%",
-          "N: 新高値まで 3.4%",
-          "L: 業種ランク #1 (建設業), RS: 0.1%"
+          "S: 50日EMA上 (+18.41%), 出来高 154%",
+          "N: 新高値まで 7.9%",
+          "L: 業種ランク #1 (非鉄金属), RS: 41.6%"
         ]
       },
       {
@@ -2664,7 +1706,7 @@
             "isTop20Industry": true,
             "stockRS": -2.75,
             "rsPercentile": 0,
-            "industryPerformance": 1.04,
+            "industryPerformance": 1.23,
             "summary": "業種ランク #3 (水産・農林業), RS: -2.7%"
           },
           "pattern": {
@@ -2726,12 +1768,12 @@
           "leader": {
             "passed": true,
             "industry": "建設業",
-            "industryRank": 1,
+            "industryRank": 2,
             "isTop20Industry": true,
             "stockRS": 16.38,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 16.4%"
+            "rsPercentile": 67,
+            "industryPerformance": 6.08,
+            "summary": "業種ランク #2 (建設業), RS: 16.4%"
           },
           "pattern": {
             "detected": false,
@@ -2746,208 +1788,7 @@
         "reasons": [
           "S: 50日EMA上 (+10.82%), 出来高 249%",
           "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 16.4%"
-        ]
-      },
-      {
-        "code": "1721",
-        "name": "コムシスホールディングス",
-        "industry": "建設業",
-        "currentPrice": 4714,
-        "score": 70,
-        "signal": "BREAKOUT",
-        "signalMessage": "🔥 新高値ブレイク！",
-        "pivotPrice": 4726,
-        "buyZoneMax": null,
-        "distanceToPivot": 0.25,
-        "volumeRatio": 1.72,
-        "volumeConfirmed": true,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 4271,
-            "currentPrice": 4714,
-            "distanceFromEMA50": 10.38,
-            "volumeRatio": 1.72,
-            "volumeConfirmed": true,
-            "avgVolume50": 457288,
-            "currentVolume": 785600,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+10.38%), 出来高 172%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": true,
-            "isNear52WeekHigh": true,
-            "high52Week": 4726,
-            "low52Week": 3703,
-            "currentPrice": 4714,
-            "distanceFromHigh": 0.25,
-            "distanceFromLow": 27.3,
-            "rangePosition": 98.8,
-            "summary": "🔥 52週新高値更新!"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 10.14,
-            "rsPercentile": 0,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 10.1%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+10.38%), 出来高 172%",
-          "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 10.1%"
-        ]
-      },
-      {
-        "code": "1723",
-        "name": "日本電技",
-        "industry": "建設業",
-        "currentPrice": 8580,
-        "score": 70,
-        "signal": "BREAKOUT",
-        "signalMessage": "🔥 新高値ブレイク！",
-        "pivotPrice": 8620,
-        "buyZoneMax": null,
-        "distanceToPivot": 0.46,
-        "volumeRatio": 1.5,
-        "volumeConfirmed": true,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 6837,
-            "currentPrice": 8580,
-            "distanceFromEMA50": 25.49,
-            "volumeRatio": 1.5,
-            "volumeConfirmed": true,
-            "avgVolume50": 47800,
-            "currentVolume": 71900,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+25.49%), 出来高 150%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": true,
-            "isNear52WeekHigh": true,
-            "high52Week": 8620,
-            "low52Week": 5010,
-            "currentPrice": 8580,
-            "distanceFromHigh": 0.46,
-            "distanceFromLow": 71.26,
-            "rangePosition": 98.9,
-            "summary": "🔥 52週新高値更新!"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 22.4,
-            "rsPercentile": 100,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 22.4%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+25.49%), 出来高 150%",
-          "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 22.4%"
-        ]
-      },
-      {
-        "code": "1736",
-        "name": "オーテック",
-        "industry": "建設業",
-        "currentPrice": 2585,
-        "score": 70,
-        "signal": "BREAKOUT",
-        "signalMessage": "🔥 新高値ブレイク！",
-        "pivotPrice": 2650,
-        "buyZoneMax": null,
-        "distanceToPivot": 2.45,
-        "volumeRatio": 1.63,
-        "volumeConfirmed": true,
-        "earningsRisk": "UNKNOWN",
-        "earningsMessage": "決算情報なし",
-        "analysis": {
-          "supplyDemand": {
-            "passed": true,
-            "aboveEMA50": true,
-            "ema50": 2195,
-            "currentPrice": 2585,
-            "distanceFromEMA50": 17.78,
-            "volumeRatio": 1.63,
-            "volumeConfirmed": true,
-            "avgVolume50": 7562,
-            "currentVolume": 12300,
-            "handleVolumeDecreasing": false,
-            "summary": "50日EMA上 (+17.78%), 出来高 163%"
-          },
-          "newHighs": {
-            "passed": true,
-            "isAtNewHigh": true,
-            "isNear52WeekHigh": true,
-            "high52Week": 2650,
-            "low52Week": 1728,
-            "currentPrice": 2585,
-            "distanceFromHigh": 2.45,
-            "distanceFromLow": 49.59,
-            "rangePosition": 93,
-            "summary": "🔥 52週新高値更新!"
-          },
-          "leader": {
-            "passed": true,
-            "industry": "建設業",
-            "industryRank": 1,
-            "isTop20Industry": true,
-            "stockRS": 18.58,
-            "rsPercentile": 67,
-            "industryPerformance": 7.21,
-            "summary": "業種ランク #1 (建設業), RS: 18.6%"
-          },
-          "pattern": {
-            "detected": false,
-            "reason": "カップパターンが見つかりません"
-          },
-          "earnings": {
-            "hasEarnings": false,
-            "risk": "UNKNOWN",
-            "message": "決算情報なし"
-          }
-        },
-        "reasons": [
-          "S: 50日EMA上 (+17.78%), 出来高 163%",
-          "N: 🔥 52週新高値更新!",
-          "L: 業種ランク #1 (建設業), RS: 18.6%"
+          "L: 業種ランク #2 (建設業), RS: 16.4%"
         ]
       }
     ]
