@@ -131,14 +131,33 @@ export async function fetchCurrentPrice(code) {
 
 /**
  * 指数データを取得（TOPIX, 日経225）
+ * 
+ * 優先順位:
+ * 1. Stooq.com（レート制限が緩い）
+ * 2. Yahoo Finance（フォールバック）
  */
 export async function fetchIndexData() {
+    // まずStooqを試す
+    const { fetchIndexDataFromStooq } = await import('./fetchStooq.js');
+
+    console.log('📊 指数データを取得中...');
+
+    let results = await fetchIndexDataFromStooq();
+
+    // Stooqで取得できた場合はそれを使用
+    if (results && (results['TOPIX'] || results['日経225'])) {
+        return results;
+    }
+
+    // Stooqが失敗した場合、Yahoo Financeにフォールバック
+    console.log('   ⚠️ Stooq失敗 - Yahoo Financeを試行...');
+
     const indices = [
         { symbol: '^TPX', name: 'TOPIX' },
         { symbol: '^N225', name: '日経225' }
     ];
 
-    const results = {};
+    results = {};
 
     for (const index of indices) {
         try {
@@ -165,11 +184,13 @@ export async function fetchIndexData() {
                         low: q.low,
                         close: q.close,
                         volume: q.volume
-                    })).filter(q => q.close !== null)
+                    })).filter(q => q.close !== null),
+                    source: 'yahoo'
                 };
+                console.log(`   ✅ ${index.name}: ${result.quotes.length}日分取得 (Yahoo)`);
             }
         } catch (error) {
-            console.error(`❌ 指数データ取得エラー (${index.name}):`, error.message);
+            console.error(`   ❌ ${index.name}: ${error.message}`);
         }
     }
 
@@ -177,3 +198,4 @@ export async function fetchIndexData() {
 }
 
 export { fetchSingleStock };
+

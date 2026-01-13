@@ -104,11 +104,18 @@ export function analyzeMarketTrend(indexData) {
     const topix = indexData['TOPIX'];
     const nikkei = indexData['日経225'];
 
-    if (!topix || !nikkei) {
+    // 指数データがない場合は「中立」として続行可能に
+    if (!topix || !nikkei || !topix.quotes || topix.quotes.length < 50) {
         return {
-            status: 'UNKNOWN',
-            message: '指数データを取得できませんでした',
-            canEnter: false
+            status: 'NEUTRAL',
+            message: '⚪ 指数データなし - スクリーニングは続行',
+            canEnter: true,  // 中立として続行可能
+            details: {
+                topix: null,
+                distributionDays: 0,
+                followThrough: null,
+                dataUnavailable: true
+            }
         };
     }
 

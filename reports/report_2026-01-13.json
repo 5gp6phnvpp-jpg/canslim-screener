@@ -1,9 +1,19 @@
 {
   "date": "2026-01-13",
   "marketTrend": {
-    "status": "UNKNOWN",
-    "message": "指数データを取得できませんでした",
-    "canEnter": false
+    "status": "CONFIRMED",
+    "message": "✅ 上昇トレンド確認 (50日MA比: +6.71%)",
+    "canEnter": true,
+    "details": {
+      "topix": {
+        "current": 3598.89,
+        "ma50": 3372.4980000000005,
+        "aboveMA50": true,
+        "distanceFromMA50": 6.71
+      },
+      "distributionDays": 0,
+      "followThrough": null
+    }
   },
   "industryRankings": [],
   "summary": {
