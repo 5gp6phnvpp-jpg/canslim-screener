@@ -1,0 +1,18 @@
+# 依存関係
+node_modules/
+
+# 環境変数（トークンが含まれる）
+.env
+
+# キャッシュデータ
+data/
+
+# テストファイル
+test-*.js
+
+# OS関連
+.DS_Store
+Thumbs.db
+
+# ログ
+*.log
