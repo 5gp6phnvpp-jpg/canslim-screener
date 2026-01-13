@@ -99,7 +99,12 @@ async function main() {
         if (LINE_CHANNEL_TOKEN && LINE_USER_ID) {
             console.log('\n📱 LINE通知送信中...');
             const reportData = formatResultsForReport(results);
-            await sendScreeningReport(LINE_CHANNEL_TOKEN, LINE_USER_ID, reportData);
+
+            // GitHub PagesダッシュボードURL（ユーザー名部分は環境変数で設定可能）
+            const githubUser = process.env.GITHUB_REPOSITORY_OWNER || '5gp6phnvpp-jpg';
+            const dashboardUrl = `https://${githubUser}.github.io/canslim-screener/`;
+
+            await sendScreeningReport(LINE_CHANNEL_TOKEN, LINE_USER_ID, reportData, dashboardUrl);
         } else {
             console.log('\n⚠️ LINE通知: トークン未設定のためスキップ');
         }

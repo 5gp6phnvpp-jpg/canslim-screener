@@ -263,7 +263,7 @@ function createStockCard(stock) {
  * @param {string} userId - 送信先ユーザーID
  * @param {Object} report - レポートデータ
  */
-export async function sendScreeningReport(channelToken, userId, report) {
+export async function sendScreeningReport(channelToken, userId, report, dashboardUrl = null) {
     const { date, marketData, industryRankings, candidates } = report;
 
     const bubbles = [];
@@ -277,8 +277,66 @@ export async function sendScreeningReport(channelToken, userId, report) {
     }
 
     // 3. 銘柄カード（最大8銘柄）
-    const stockCards = candidates.slice(0, 8).map(createStockCard);
-    bubbles.push(...stockCards);
+    if (candidates && candidates.length > 0) {
+        const stockCards = candidates.slice(0, 8).map(createStockCard);
+        bubbles.push(...stockCards);
+    }
+
+    // 4. サマリーカード（銘柄がない場合や、ダッシュボードリンク用）
+    const summaryCard = {
+        type: 'bubble',
+        size: 'kilo',
+        header: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+                { type: 'text', text: '📋 スクリーニング結果', weight: 'bold', size: 'md', color: '#ffffff' }
+            ],
+            backgroundColor: '#6c5ce7',
+            paddingAll: '15px'
+        },
+        body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+                {
+                    type: 'text',
+                    text: candidates.length > 0
+                        ? `🎯 ${candidates.length}銘柄が条件通過`
+                        : '⚪ 今日は条件通過銘柄なし',
+                    weight: 'bold',
+                    size: 'md'
+                },
+                {
+                    type: 'text',
+                    text: '詳細はダッシュボードで確認',
+                    size: 'sm',
+                    color: '#666666',
+                    margin: 'md'
+                }
+            ],
+            paddingAll: '15px'
+        },
+        footer: dashboardUrl ? {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+                {
+                    type: 'button',
+                    action: {
+                        type: 'uri',
+                        label: '📊 ダッシュボードを開く',
+                        uri: dashboardUrl
+                    },
+                    height: 'sm',
+                    style: 'primary',
+                    color: '#6c5ce7'
+                }
+            ],
+            paddingAll: '10px'
+        } : undefined
+    };
+    bubbles.push(summaryCard);
 
     // Carousel形式で送信
     const flexMessage = {
