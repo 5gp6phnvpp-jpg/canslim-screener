@@ -67,37 +67,24 @@ async function fetchSingleStock(code, days = 90) {
 /**
  * 複数銘柄の株価データをバッチ取得
  * 
- * 優先順位:
- * 1. Stooq.com（レート制限が緩い）
- * 2. Yahoo Finance（フォールバック）
+ * 優先順位（データの新鮮さを重視）:
+ * 1. Yahoo Finance（最新データ、レート制限あり）
+ * 2. Stooq.com（フォールバック、数日遅延の場合あり）
  * 
  * @param {Array<string>} codes - 証券コードの配列
  * @param {Function} progressCallback - 進捗コールバック
  */
 export async function fetchPriceData(codes, progressCallback = null) {
-    // まずStooqで取得を試みる
-    const { fetchPriceDataFromStooq } = await import('./fetchStooq.js');
+    let results = [];
+    const fetchedCodes = new Set();
 
-    console.log('💹 株価データを取得中 (Stooq.com)...');
-    let results = await fetchPriceDataFromStooq(codes, progressCallback);
+    // ステップ1: Yahoo Financeで取得を試みる
+    console.log('💹 株価データを取得中 (Yahoo Finance)...');
+    const yahooResults = [];
+    const totalBatches = Math.ceil(codes.length / BATCH_SIZE);
 
-    // Stooqで十分なデータが取得できた場合はそれを使用
-    const successRate = results.length / codes.length;
-    if (successRate >= 0.5) {  // 50%以上取得できればOK
-        console.log(`   ✅ Stooq: ${results.length}/${codes.length}銘柄取得`);
-        return results;
-    }
-
-    // Stooqで取得できなかった銘柄をYahoo Financeで補完
-    console.log(`   ⚠️ Stooq: ${results.length}銘柄のみ - Yahoo Financeで補完...`);
-
-    const stooqCodes = new Set(results.map(r => r.code));
-    const missingCodes = codes.filter(code => !stooqCodes.has(code));
-
-    const totalBatches = Math.ceil(missingCodes.length / BATCH_SIZE);
-
-    for (let i = 0; i < missingCodes.length; i += BATCH_SIZE) {
-        const batch = missingCodes.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < codes.length; i += BATCH_SIZE) {
+        const batch = codes.slice(i, i + BATCH_SIZE);
         const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
         if (progressCallback) {
@@ -114,12 +101,33 @@ export async function fetchPriceData(codes, progressCallback = null) {
         );
 
         // 成功したものだけ追加
-        results.push(...batchResults.filter(r => r !== null));
+        for (const r of batchResults) {
+            if (r !== null) {
+                yahooResults.push(r);
+                fetchedCodes.add(r.code);
+            }
+        }
 
-        // レート制限対策で待機
-        if (i + BATCH_SIZE < missingCodes.length) {
+        // レート制限対策で待機（Yahoo は厳しいので長めに）
+        if (i + BATCH_SIZE < codes.length) {
             await new Promise(resolve => setTimeout(resolve, DELAY_MS));
         }
+    }
+
+    console.log(`   Yahoo: ${yahooResults.length}/${codes.length}銘柄取得`);
+    results = yahooResults;
+
+    // ステップ2: Yahoo で取得できなかった銘柄を Stooq で補完
+    const missingCodes = codes.filter(code => !fetchedCodes.has(code));
+
+    if (missingCodes.length > 0) {
+        console.log(`   ⚙️ Stooqで${missingCodes.length}銘柄を補完中...`);
+
+        const { fetchPriceDataFromStooq } = await import('./fetchStooq.js');
+        const stooqResults = await fetchPriceDataFromStooq(missingCodes);
+
+        console.log(`   Stooq: ${stooqResults.length}銘柄追加取得`);
+        results.push(...stooqResults);
     }
 
     console.log(`   ✅ 合計: ${results.length}/${codes.length}銘柄取得`);
