@@ -11,9 +11,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { getStockList } from './data/fetchStockList.js';
+import { getCuratedStockList, getCuratedStockCount } from './data/curatedStockList.js';
 import { fetchPriceData, fetchIndexData } from './data/fetchPriceData.js';
 import { getEarningsDates } from './data/fetchEarnings.js';
-import { filterByMarketCap } from './data/fetchMarketCap.js';
 import { runScreening, formatResultsForReport } from './screener.js';
 import { sendScreeningReport, sendTestMessage } from './notify/lineNotify.js';
 import { saveWebReport } from './web/generateReport.js';
@@ -27,7 +27,7 @@ const LINE_USER_ID = process.env.LINE_USER_ID;
 
 // 設定
 const MAX_STOCKS = parseInt(process.env.MAX_STOCKS || '0');  // 0 = 全銘柄
-const TOP_MARKET_CAP = parseInt(process.env.TOP_MARKET_CAP || '1000');  // 時価総額上位N銘柄
+const USE_CURATED_LIST = process.env.USE_CURATED_LIST !== 'false';  // デフォルト: true（厳選銘柄リストを使用）
 const VERBOSE = process.argv.includes('--verbose') || process.argv.includes('-v');
 
 /**
@@ -48,18 +48,16 @@ async function main() {
     try {
         // 1. 銘柄リスト取得
         console.log('\n📋 銘柄リスト取得中...');
-        let stockList = await getStockList(JQUANTS_REFRESH_TOKEN);
-        console.log(`   取得完了: ${stockList.length}銘柄`);
+        let stockList;
 
-        // 2. 時価総額フィルタリング（TOP N銘柄に絞り込み）
-        if (MAX_STOCKS === 0 && TOP_MARKET_CAP > 0) {
-            console.log(`\n📈 時価総額上位${TOP_MARKET_CAP}銘柄に絞り込み中...`);
-            try {
-                stockList = await filterByMarketCap(stockList, TOP_MARKET_CAP);
-            } catch (error) {
-                console.log(`   ⚠️ 時価総額フィルタリング失敗: ${error.message}`);
-                console.log(`   → 全銘柄で続行します`);
-            }
+        if (USE_CURATED_LIST) {
+            // 厳選銘柄リスト（日経225構成銘柄中心）
+            stockList = getCuratedStockList();
+            console.log(`   ✅ 厳選銘柄リスト使用: ${stockList.length}銘柄（日経225構成銘柄中心）`);
+        } else {
+            // 全銘柄モード
+            stockList = await getStockList(JQUANTS_REFRESH_TOKEN);
+            console.log(`   取得完了: ${stockList.length}銘柄`);
         }
 
         // デバッグ用: 銘柄数制限
