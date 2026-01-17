@@ -709,7 +709,12 @@
         <div style="position: relative; height: 280px; width: 100%;">
           <canvas id="priceChart"></canvas>
         </div>
-        <div style="text-align: right; margin-top: 4px;">
+        <div style="position: relative; height: 80px; width: 100%; margin-top: 4px;">
+          <canvas id="volumeChart"></canvas>
+        </div>
+        <div
+          style="text-align: right; margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.7rem; color: var(--text-muted);">📱 ピンチ/ホイールでズーム、ドラッグで移動</span>
           <button onclick="resetChartZoom()"
             style="padding: 4px 10px; font-size: 0.7rem; background: var(--bg-accent); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">🔄
             リセット</button>
@@ -730,6 +735,12 @@
           </span>
           <span style="display: flex; align-items: center; gap: 4px;">
             <span style="width: 12px; height: 2px; background: #ef4444;"></span> 200EMA
+          </span>
+          <span style="display: flex; align-items: center; gap: 4px;">
+            <span style="width: 8px; height: 8px; background: #10b981;"></span> 上昇出来高
+          </span>
+          <span style="display: flex; align-items: center; gap: 4px;">
+            <span style="width: 8px; height: 8px; background: #ef4444;"></span> 下落出来高
           </span>
         </div>
       </section>
@@ -1238,33 +1249,36 @@
       const distanceFromHigh = ((high52Week - current.close) / high52Week) * 100;
       const distanceFromLow = ((current.close - low52Week) / low52Week) * 100;
 
-      const isAtNewHigh = distanceFromHigh <= 3;
-      const isNear = distanceFromHigh <= 10;
+      // 当日高値が52週高値と一致（または更新）なら「新高値更新！」
+      const isNewHighToday = current.high >= high52Week;
+      const isAtNewHigh = distanceFromHigh <= 3;  // 終値が3%以内なら高値圏
+      const isNear = distanceFromHigh <= 10;  // 10%以内なら接近中
 
       return {
         high52Week,
         low52Week,
         distanceFromHigh: distanceFromHigh.toFixed(2),
         distanceFromLow: distanceFromLow.toFixed(2),
-        isAtNewHigh,
-        isNear
+        isNewHighToday,  // 当日更新
+        isAtNewHigh,      // 高値圏
+        isNear            // 接近中
       };
     }
 
     // 出来高分析
     function analyzeVolume(quotes) {
-      const recent5 = quotes.slice(-5);
+      const current = quotes[quotes.length - 1];
       const recent50 = quotes.slice(-50);
 
-      const avgVol5 = recent5.reduce((s, q) => s + q.volume, 0) / 5;
-      const avgVol50 = recent50.reduce((s, q) => s + q.volume, 0) / 50;
+      const todayVol = current.volume;  // 当日出来高
+      const avgVol50 = recent50.reduce((s, q) => s + q.volume, 0) / 50;  // 50日平均
 
-      const volumeRatio = avgVol5 / avgVol50;
-      const isDryUp = volumeRatio < 0.7;
-      const isSurge = volumeRatio > 1.5;
+      const volumeRatio = todayVol / avgVol50;  // 当日 / 50日平均
+      const isDryUp = volumeRatio < 0.5;  // 50%未満で枯渇
+      const isSurge = volumeRatio > 1.5;  // 150%以上で急増
 
       return {
-        avgVol5,
+        todayVol,
         avgVol50,
         volumeRatio: (volumeRatio * 100).toFixed(0),
         isDryUp,
@@ -1441,8 +1455,8 @@
           </div>
           <div class="detail">
             <span class="label">ステータス</span>
-            <span class="badge ${analysis.newHighs.isAtNewHigh ? 'pass' : analysis.newHighs.isNear ? 'warning' : 'fail'}">
-              ${analysis.newHighs.isAtNewHigh ? '🔥 新高値圏' : analysis.newHighs.isNear ? '🎯 接近中' : '📉 離れている'}
+            <span class="badge ${analysis.newHighs.isNewHighToday ? 'pass' : analysis.newHighs.isAtNewHigh ? 'pass' : analysis.newHighs.isNear ? 'warning' : 'fail'}">
+              ${analysis.newHighs.isNewHighToday ? '🎉 新高値更新！' : analysis.newHighs.isAtNewHigh ? '🔥 高値圏' : analysis.newHighs.isNear ? '🎯 接近中' : '📉 離れている'}
             </span>
           </div>
         </div>
@@ -1468,12 +1482,16 @@
         <div class="analysis-card">
           <h4>📊 出来高分析</h4>
           <div class="detail">
-            <span class="label">5日平均</span>
-            <span>${(analysis.volumeAnalysis.avgVol5 / 1000000).toFixed(2)}M</span>
+            <span class="label">当日出来高</span>
+            <span>${(analysis.volumeAnalysis.todayVol / 1000000).toFixed(2)}M</span>
           </div>
           <div class="detail">
             <span class="label">50日平均</span>
             <span>${(analysis.volumeAnalysis.avgVol50 / 1000000).toFixed(2)}M</span>
+          </div>
+          <div class="detail">
+            <span class="label">対50日比率</span>
+            <span class="badge ${analysis.volumeAnalysis.isSurge ? 'pass' : analysis.volumeAnalysis.isDryUp ? 'warning' : ''}">${analysis.volumeAnalysis.volumeRatio}%</span>
           </div>
           <div class="detail">
             <span class="label">ステータス</span>
@@ -1716,19 +1734,16 @@
               },
               zoom: {
                 wheel: {
-                  enabled: true
+                  enabled: true,
+                  speed: 0.1
                 },
                 pinch: {
                   enabled: true
                 },
-                mode: 'x',
-                onZoomComplete: function ({ chart }) {
-                  // ズーム時にローソク足モードに切り替え
-                  const zoomLevel = chart.getZoomLevel();
-                  if (zoomLevel > 2) {
-                    switchToCandlestick(chart, chartData, ema10, ema21, ema50, ema200, labels);
-                  }
-                }
+                mode: 'x'
+              },
+              limits: {
+                x: { min: 'original', max: 'original' }
               }
             }
           },
@@ -1762,7 +1777,10 @@
       const startDate = new Date(chartData[0].date);
       const endDate = new Date(chartData[chartData.length - 1].date);
       document.getElementById('chartTimestamp').textContent =
-        `${startDate.getMonth() + 1}/${startDate.getDate()} - ${endDate.getMonth() + 1}/${endDate.getDate()} (ホイールでズーム)`;
+        `${startDate.getMonth() + 1}/${startDate.getDate()} - ${endDate.getMonth() + 1}/${endDate.getDate()}`;
+
+      // 出来高チャートも描画
+      drawVolumeChart(quotes, labels);
     }
 
     // ズーム時にローソク足に切り替え
@@ -1797,10 +1815,91 @@
       }
     }
 
+    // 出来高チャート
+    let volumeChartInstance = null;
+
+    function drawVolumeChart(quotes, labels) {
+      const ctx = document.getElementById('volumeChart').getContext('2d');
+
+      if (volumeChartInstance) {
+        volumeChartInstance.destroy();
+      }
+
+      const chartDays = Math.min(126, quotes.length);
+      const chartData = quotes.slice(-chartDays);
+      const chartLabels = labels || chartData.map(q => {
+        const d = new Date(q.date);
+        return `${d.getMonth() + 1}/${d.getDate()}`;
+      });
+
+      // 出来高データ（上昇=緑、下落=赤）
+      const volumeColors = chartData.map((q, i) => {
+        if (i === 0) return '#64748b';
+        return q.close >= chartData[i - 1].close ? '#10b981' : '#ef4444';
+      });
+
+      volumeChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            label: '出来高',
+            data: chartData.map(q => q.volume),
+            backgroundColor: volumeColors,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return `出来高: ${(context.parsed.y / 1000000).toFixed(2)}M`;
+                }
+              }
+            },
+            zoom: {
+              pan: {
+                enabled: true,
+                mode: 'x'
+              },
+              zoom: {
+                wheel: { enabled: true },
+                pinch: { enabled: true },
+                mode: 'x'
+              }
+            }
+          },
+          scales: {
+            x: {
+              display: false
+            },
+            y: {
+              display: true,
+              position: 'right',
+              grid: { display: false },
+              ticks: {
+                font: { size: 8 },
+                callback: function (value) {
+                  return (value / 1000000).toFixed(0) + 'M';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
     // ズームリセット
     function resetChartZoom() {
       if (priceChartInstance) {
         priceChartInstance.resetZoom();
+      }
+      if (volumeChartInstance) {
+        volumeChartInstance.resetZoom();
       }
     }
   </script>
