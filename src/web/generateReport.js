@@ -51,105 +51,159 @@ export async function generateWebReport(results) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CANSLIM スクリーニングレポート - ${date}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #818cf8;
+      --primary-dark: #3730a3;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-accent: #f1f5f9;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --border: #e2e8f0;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    }
+    
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      color: #e8e8e8;
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       min-height: 100vh;
       padding: 20px;
+      line-height: 1.6;
     }
     
     .container { max-width: 1400px; margin: 0 auto; }
     
     header {
       text-align: center;
-      padding: 30px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 40px 0;
       margin-bottom: 30px;
     }
     
     header h1 {
-      font-size: 2rem;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
+      letter-spacing: -0.025em;
     }
     
-    header .date { color: #888; font-size: 0.9rem; }
+    header .date { 
+      color: var(--text-secondary); 
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
     
     /* ナビゲーションタブ */
     .nav-tabs {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 24px;
       flex-wrap: wrap;
       justify-content: center;
+      background: var(--bg-secondary);
+      padding: 8px;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
     }
     
     .nav-tab {
-      padding: 10px 20px;
-      background: rgba(255,255,255,0.1);
+      padding: 12px 24px;
+      background: transparent;
       border: none;
-      border-radius: 20px;
-      color: #e8e8e8;
+      border-radius: 12px;
+      color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
       font-size: 0.9rem;
+      font-weight: 500;
     }
     
-    .nav-tab:hover, .nav-tab.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .nav-tab:hover {
+      background: var(--bg-accent);
+      color: var(--text-primary);
+    }
+    
+    .nav-tab.active {
+      background: var(--primary);
+      color: white;
     }
     
     /* 業種フィルター */
     .filter-container {
-      background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 16px 24px;
       margin-bottom: 24px;
       display: flex;
-      gap: 16px;
+      gap: 20px;
       align-items: center;
       flex-wrap: wrap;
+      box-shadow: var(--shadow);
     }
     
-    .filter-label { font-weight: bold; }
+    .filter-label { 
+      font-weight: 600;
+      color: var(--text-primary);
+    }
     
     .filter-select {
-      padding: 8px 16px;
-      border-radius: 8px;
-      border: none;
-      background: rgba(255,255,255,0.1);
-      color: #e8e8e8;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
       font-size: 0.9rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.2s;
     }
     
-    .filter-select option { background: #1a1a2e; }
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .filter-select option { background: var(--bg-secondary); }
     
     .section {
-      background: rgba(255,255,255,0.05);
+      background: var(--bg-secondary);
       border-radius: 16px;
-      padding: 24px;
+      padding: 28px;
       margin-bottom: 24px;
-      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
     }
     
     .section-title {
-      font-size: 1.2rem;
+      font-size: 1.25rem;
+      font-weight: 600;
       margin-bottom: 16px;
       display: flex;
       align-items: center;
       gap: 10px;
+      color: var(--text-primary);
     }
     
     .section-subtitle {
-      font-size: 0.85rem;
-      color: #888;
+      font-size: 0.875rem;
+      color: var(--text-muted);
       margin-bottom: 16px;
     }
     
@@ -162,37 +216,39 @@ export async function generateWebReport(results) {
     }
     
     .status-badge {
-      padding: 8px 20px;
-      border-radius: 20px;
-      font-weight: bold;
-      font-size: 1.1rem;
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      color: white;
     }
     
-    .status-confirmed { background: linear-gradient(135deg, #00c851 0%, #007e33 100%); }
-    .status-pressure { background: linear-gradient(135deg, #ffbb33 0%, #ff8800 100%); color: #000; }
-    .status-correction { background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); }
-    .status-neutral { background: linear-gradient(135deg, #888 0%, #666 100%); }
+    .status-confirmed { background: linear-gradient(135deg, var(--success) 0%, #059669 100%); }
+    .status-pressure { background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%); }
+    .status-correction { background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); }
+    .status-neutral { background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); }
     
     .market-details {
       display: flex;
-      gap: 30px;
-      margin-top: 16px;
+      gap: 16px;
+      margin-top: 20px;
       flex-wrap: wrap;
     }
     
     .market-detail {
-      background: rgba(255,255,255,0.05);
-      padding: 12px 20px;
-      border-radius: 10px;
+      background: var(--bg-accent);
+      padding: 16px 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
     }
     
-    .market-detail-label { font-size: 0.8rem; color: #888; }
-    .market-detail-value { font-size: 1.2rem; font-weight: bold; }
+    .market-detail-label { font-size: 0.8rem; color: var(--text-muted); }
+    .market-detail-value { font-size: 1.3rem; font-weight: 600; color: var(--text-primary); }
     
     /* 業種ランキング */
     .industry-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 12px;
     }
     
@@ -200,107 +256,129 @@ export async function generateWebReport(results) {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 10px;
-      transition: transform 0.2s;
+      padding: 14px 18px;
+      background: var(--bg-accent);
+      border-radius: 12px;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
     }
     
-    .industry-item:hover { transform: translateX(5px); }
+    .industry-item:hover { 
+      transform: translateX(4px);
+      border-color: var(--primary-light);
+      background: white;
+    }
     
     .industry-rank {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 50%;
-      font-size: 0.8rem;
-      font-weight: bold;
-      margin-right: 12px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-right: 14px;
+      color: white;
     }
     
-    .industry-name { flex: 1; }
-    .industry-perf { font-weight: bold; }
-    .industry-perf.positive { color: #00c851; }
-    .industry-perf.negative { color: #ff4444; }
+    .industry-name { flex: 1; font-weight: 500; color: var(--text-primary); }
+    .industry-perf { font-weight: 600; margin-left: 8px; }
+    .industry-perf.positive { color: var(--success); }
+    .industry-perf.negative { color: var(--danger); }
     
     /* 銘柄カード */
     .stock-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
     }
     
     .stock-card {
-      background: rgba(255,255,255,0.08);
-      border-radius: 12px;
+      background: var(--bg-secondary);
+      border-radius: 16px;
       overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: all 0.2s ease;
+      border: 1px solid var(--border);
     }
     
     .stock-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary-light);
     }
     
     .stock-card.hidden { display: none; }
     
     .stock-header {
-      padding: 16px;
+      padding: 18px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      color: white;
     }
     
-    .stock-header.breakout { background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); }
-    .stock-header.approaching { background: linear-gradient(135deg, #ffbb33 0%, #ff8800 100%); color: #000; }
-    .stock-header.forming { background: linear-gradient(135deg, #00c851 0%, #007e33 100%); }
-    .stock-header.volume-surge { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); }
-    .stock-header.rs-leader { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); }
+    .stock-header.breakout { background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); }
+    .stock-header.approaching { background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%); }
+    .stock-header.forming { background: linear-gradient(135deg, var(--success) 0%, #059669 100%); }
+    .stock-header.volume-surge { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+    .stock-header.rs-leader { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
     
-    .stock-code { font-size: 1.2rem; font-weight: bold; }
-    .stock-signal { font-size: 0.8rem; padding: 4px 10px; background: rgba(0,0,0,0.2); border-radius: 10px; }
+    .stock-code { font-size: 1.25rem; font-weight: 700; }
+    .stock-signal { font-size: 0.8rem; padding: 6px 12px; background: rgba(255,255,255,0.2); border-radius: 8px; font-weight: 500; }
     
-    .stock-body { padding: 16px; }
-    .stock-name { font-size: 1.1rem; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stock-body { padding: 20px; }
+    .stock-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
     
-    .stock-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .stock-detail { display: flex; justify-content: space-between; }
-    .stock-detail-label { color: #888; font-size: 0.85rem; }
-    .stock-detail-value { font-weight: 500; }
+    .stock-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stock-detail { display: flex; justify-content: space-between; padding: 4px 0; }
+    .stock-detail-label { color: var(--text-muted); font-size: 0.85rem; }
+    .stock-detail-value { font-weight: 500; color: var(--text-primary); }
     
     .stock-footer {
-      padding: 12px 16px;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
+      background: var(--bg-accent);
     }
     
-    .stock-link { color: #667eea; text-decoration: none; font-size: 0.9rem; }
-    .stock-link:hover { text-decoration: underline; }
+    .stock-link { 
+      color: var(--primary); 
+      text-decoration: none; 
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .stock-link:hover { 
+      color: var(--primary-dark);
+      text-decoration: underline; 
+    }
     
     /* 決算カレンダー */
     .earnings-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 12px;
     }
     
     .earnings-item {
-      padding: 12px 16px;
-      background: rgba(255,100,100,0.1);
-      border-radius: 10px;
-      border-left: 4px solid #ff4444;
+      padding: 14px 18px;
+      background: #fef2f2;
+      border-radius: 12px;
+      border-left: 4px solid var(--danger);
     }
     
-    .earnings-item.medium { border-left-color: #ffbb33; background: rgba(255,187,51,0.1); }
+    .earnings-item.medium { 
+      border-left-color: var(--warning); 
+      background: #fffbeb; 
+    }
     
-    .earnings-code { font-weight: bold; font-size: 1.1rem; }
-    .earnings-name { font-size: 0.85rem; color: #888; margin-bottom: 4px; }
-    .earnings-date { color: #ff4444; font-weight: 500; }
-    .earnings-item.medium .earnings-date { color: #ffbb33; }
+    .earnings-code { font-weight: 600; font-size: 1.1rem; color: var(--text-primary); }
+    .earnings-name { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; }
+    .earnings-date { color: var(--danger); font-weight: 500; }
+    .earnings-item.medium .earnings-date { color: var(--warning); }
     
     /* アーカイブ */
     .archive-list {
@@ -310,14 +388,20 @@ export async function generateWebReport(results) {
     }
     
     .archive-link {
-      padding: 8px 16px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 8px;
-      color: #667eea;
+      padding: 10px 18px;
+      background: var(--bg-accent);
+      border-radius: 10px;
+      color: var(--primary);
       text-decoration: none;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
     }
     
-    .archive-link:hover { background: rgba(255,255,255,0.2); }
+    .archive-link:hover { 
+      background: white;
+      border-color: var(--primary);
+    }
     
     /* テーブル */
     .ranking-table {
@@ -326,31 +410,36 @@ export async function generateWebReport(results) {
     }
     
     .ranking-table th, .ranking-table td {
-      padding: 12px;
+      padding: 14px 16px;
       text-align: left;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid var(--border);
     }
     
     .ranking-table th {
-      background: rgba(255,255,255,0.05);
+      background: var(--bg-accent);
       font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     
-    .ranking-table tr:hover { background: rgba(255,255,255,0.05); }
+    .ranking-table tr:hover { background: var(--bg-accent); }
     
     /* レスポンシブ */
     @media (max-width: 600px) {
-      header h1 { font-size: 1.5rem; }
-      .section { padding: 16px; }
+      header h1 { font-size: 1.6rem; }
+      .section { padding: 20px; }
       .stock-grid { grid-template-columns: 1fr; }
-      .nav-tabs { justify-content: flex-start; overflow-x: auto; }
+      .nav-tabs { justify-content: flex-start; overflow-x: auto; padding: 6px; }
+      .market-details { flex-direction: column; }
     }
     
     footer {
       text-align: center;
-      padding: 30px;
-      color: #666;
-      font-size: 0.85rem;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
     }
   </style>
 </head>
@@ -359,6 +448,9 @@ export async function generateWebReport(results) {
     <header>
       <h1>📊 CANSLIM スクリーニングレポート</h1>
       <p class="date">更新日時: ${date} ${new Date().toLocaleTimeString('ja-JP')}</p>
+      <div style="margin-top: 16px;">
+        <a href="us-analyzer.html" class="archive-link" style="display: inline-block;">🇺🇸 米国株分析ツール</a>
+      </div>
     </header>
     
     <!-- ナビゲーションタブ -->
@@ -410,12 +502,16 @@ export async function generateWebReport(results) {
     
     <!-- 業種ランキング -->
     <section class="section" id="section-industry">
-      <h2 class="section-title">📈 業種パフォーマンスTOP20</h2>
+      <h2 class="section-title">📈 業種RSランキングTOP20（IBD方式）</h2>
+      <p class="section-subtitle">過去6ヶ月（126日）のパフォーマンスでランキング。RS Rating 80以上がTOP20%。</p>
       <div class="industry-grid">
         ${industryRankings.slice(0, 20).map(r => `
           <div class="industry-item">
             <span class="industry-rank">${r.rank}</span>
             <span class="industry-name">${r.industry}</span>
+            <span class="industry-rs" style="color: ${(r.rsRating || 0) >= 80 ? '#00c851' : '#888'}; font-weight: ${(r.rsRating || 0) >= 80 ? 'bold' : 'normal'};">
+              RS:${r.rsRating || 0}
+            </span>
             <span class="industry-perf ${r.performance >= 0 ? 'positive' : 'negative'}">
               ${r.performance >= 0 ? '+' : ''}${r.performance}%
             </span>
@@ -666,11 +762,23 @@ export async function generateWebReport(results) {
 }
 
 function createStockCard(stock, type) {
+  const pattern = stock.analysis?.pattern;
+  const isVCP = pattern?.pattern === 'VCP';
+  const vcpScore = pattern?.qualityScore;
+  const leader = stock.analysis?.leader;
+  const industryRS = leader?.industryRSRating || 0;
+  const stockRS = leader?.stockRSRating || 0;
+  const isLeader = leader?.isLeader;
+
   return `
     <div class="stock-card" data-industry="${stock.industry || ''}">
       <div class="stock-header ${type}">
         <span class="stock-code">${stock.code}</span>
-        <span class="stock-signal">${stock.signalMessage || stock.signal}</span>
+        <span style="display: flex; gap: 4px; align-items: center;">
+          ${isVCP ? `<span style="background: #764ba2; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">VCP</span>` : ''}
+          ${isLeader ? `<span style="background: #00c851; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">🏆リーダー</span>` : ''}
+          <span class="stock-signal">${stock.signalMessage || stock.signal}</span>
+        </span>
       </div>
       <div class="stock-body">
         <div class="stock-name">${stock.name}</div>
@@ -691,11 +799,23 @@ function createStockCard(stock, type) {
             <span class="stock-detail-label">業種</span>
             <span class="stock-detail-value">${stock.industry || '-'}</span>
           </div>
-          ${stock.analysis?.leader?.stockRS != null ? `
           <div class="stock-detail">
-            <span class="stock-detail-label">RS</span>
-            <span class="stock-detail-value" style="color: ${stock.analysis.leader.stockRS >= 0 ? '#00c851' : '#ff4444'}">
-              ${stock.analysis.leader.stockRS >= 0 ? '+' : ''}${stock.analysis.leader.stockRS.toFixed(1)}%
+            <span class="stock-detail-label">業種RS</span>
+            <span class="stock-detail-value" style="color: ${industryRS >= 80 ? '#00c851' : (industryRS >= 60 ? '#ffbb33' : '#888')}">
+              ${industryRS}
+            </span>
+          </div>
+          <div class="stock-detail">
+            <span class="stock-detail-label">銘柄RS</span>
+            <span class="stock-detail-value" style="color: ${stockRS >= 80 ? '#00c851' : (stockRS >= 60 ? '#ffbb33' : '#888')}">
+              ${stockRS}
+            </span>
+          </div>
+          ${isVCP && vcpScore != null ? `
+          <div class="stock-detail">
+            <span class="stock-detail-label">VCP品質</span>
+            <span class="stock-detail-value" style="color: ${vcpScore >= 60 ? '#00c851' : (vcpScore >= 40 ? '#ffbb33' : '#888')}">
+              ${vcpScore}点
             </span>
           </div>
           ` : ''}

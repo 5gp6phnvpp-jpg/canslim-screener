@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>米国株分析ツール - CANSLIM/Minervini</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #818cf8;
+      --primary-dark: #3730a3;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-accent: #f1f5f9;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --border: #e2e8f0;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 0;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    header p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    /* 検索フォーム */
+    .search-section {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .search-form {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px 18px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      text-transform: uppercase;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .form-group input::placeholder {
+      text-transform: none;
+      color: var(--text-muted);
+    }
+
+    .analyze-btn {
+      padding: 14px 32px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .analyze-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .analyze-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* API設定 */
+    .api-settings {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .api-settings summary {
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    .api-settings-content {
+      margin-top: 10px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .api-settings input {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+
+    /* ローディング */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .loading .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* 結果セクション */
+    .results {
+      display: none;
+    }
+
+    .results.show {
+      display: block;
+    }
+
+    .section {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .data-timestamp {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: auto;
+    }
+
+    /* 銘柄ヘッダー */
+    .stock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .stock-info h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .stock-info .ticker {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .stock-price {
+      text-align: right;
+    }
+
+    .stock-price .current {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .stock-price .change {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .stock-price .change.positive {
+      color: var(--success);
+    }
+
+    .stock-price .change.negative {
+      color: var(--danger);
+    }
+
+    /* コンパクトメトリクスグリッド */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .metric-card {
+      background: var(--bg-accent);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .metric-card .label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .metric-card .value {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .metric-card .value.positive {
+      color: var(--success);
+    }
+
+    .metric-card .value.negative {
+      color: var(--danger);
+    }
+
+    .metric-card .value.neutral {
+      color: var(--text-secondary);
+    }
+
+    /* 判定バッジ */
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .badge.pass {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .badge.fail {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .badge.warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    /* 分析セクション */
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .analysis-card {
+      background: var(--bg-accent);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .analysis-card h4 {
+      font-size: 1rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .analysis-card .detail {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .analysis-card .detail:last-child {
+      border-bottom: none;
+    }
+
+    .analysis-card .detail .label {
+      color: var(--text-muted);
+    }
+
+    /* リンク */
+    .external-links {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .external-link {
+      padding: 10px 18px;
+      background: var(--bg-accent);
+      border-radius: 10px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+
+    .external-link:hover {
+      background: white;
+      border-color: var(--primary);
+    }
+
+    /* エラー */
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 20px;
+      color: #991b1b;
+      margin-bottom: 24px;
+    }
+
+    /* フッター */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* スマホ対応 */
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+
+      .container {
+        max-width: 100%;
+      }
+
+      header h1 {
+        font-size: 1.3rem;
+      }
+
+      header p {
+        font-size: 0.75rem;
+      }
+
+      .search-form {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .search-section {
+        padding: 16px;
+      }
+
+      .form-group {
+        min-width: 100%;
+      }
+
+      .form-group input {
+        padding: 10px 12px;
+        font-size: 1rem;
+      }
+
+      .analyze-btn {
+        width: 100%;
+        padding: 12px;
+      }
+
+      .section {
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .section-title {
+        font-size: 0.9rem;
+        flex-wrap: wrap;
+      }
+
+      .data-timestamp {
+        font-size: 0.65rem;
+        width: 100%;
+        margin-left: 0;
+        margin-top: 4px;
+      }
+
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .metric-card {
+        padding: 10px 8px;
+      }
+
+      .metric-card .label {
+        font-size: 0.6rem;
+      }
+
+      .metric-card .value {
+        font-size: 0.95rem;
+      }
+
+      .stock-header {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .stock-info h2 {
+        font-size: 1.2rem;
+      }
+
+      .stock-price {
+        text-align: left;
+      }
+
+      .stock-price .current {
+        font-size: 1.4rem;
+      }
+
+      .external-links {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .external-link {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+      }
+
+      /* チャート */
+      #priceChart {
+        height: 200px !important;
+      }
+
+      .analysis-grid {
+        gap: 10px;
+      }
+
+      .analysis-card {
+        padding: 12px;
+      }
+
+      .api-settings-content {
+        flex-direction: column;
+      }
+
+      .api-settings input {
+        min-width: 100%;
+      }
+    }
+
+    /* タブレット対応 */
+    @media (max-width: 900px) and (min-width: 601px) {
+      .metrics-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header style="padding: 20px 0; margin-bottom: 16px;">
+      <h1 style="font-size: 1.6rem; margin-bottom: 6px;">🇺🇸 米国株分析ツール</h1>
+      <p style="font-size: 0.85rem;">CANSLIM / Minervini 手法による分析</p>
+      <a href="index.html" class="external-link"
+        style="display: inline-block; margin-top: 10px; padding: 6px 12px; font-size: 0.8rem;">🇯🇵 日本株へ</a>
+    </header>
+
+    <!-- マーケット状況 -->
+    <section class="section" id="marketSection">
+      <h3 class="section-title">
+        🚦 米国マーケット状況
+        <span class="data-timestamp" id="marketTimestamp">-</span>
+      </h3>
+      <div class="metrics-grid" id="marketGrid">
+        <div class="metric-card">
+          <div class="label">S&P 500</div>
+          <div class="value" id="spyValue" style="font-size: 1rem;">読込中...</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);" id="spyChange">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">NASDAQ</div>
+          <div class="value" id="qqqValue">読込中...</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);" id="qqqChange">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">S&P 500 vs 50日MA</div>
+          <div class="value" id="spyMA50">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">NASDAQ vs 50日MA</div>
+          <div class="value" id="qqqMA50">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">🔴 売り抜け日（S&P）</div>
+          <div class="value" id="spyDistribution">-</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);" id="spyDistDetail">25営業日中</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">🔴 売り抜け日（NASDAQ）</div>
+          <div class="value" id="nasdaqDistribution">-</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);" id="nasdaqDistDetail">25営業日中</div>
+        </div>
+      </div>
+      <div style="margin-top: 12px; padding: 10px 14px; background: var(--bg-accent); border-radius: 10px;">
+        <div style="text-align: center;">
+          <span id="marketStatus" style="font-weight: 600; font-size: 0.95rem;">マーケット状況を確認中...</span>
+        </div>
+        <div id="distributionDetails"
+          style="font-size: 0.75rem; color: var(--text-muted); display: none; margin-top: 8px; text-align: center;">
+          📊 0-4日: 上昇確認 ｜ ⚠️ 5-6日: 圧力下 ｜ ❌ 7日+: 調整局面
+        </div>
+      </div>
+    </section>
+
+    <!-- 検索フォーム -->
+    <section class="search-section">
+      <form class="search-form" id="searchForm">
+        <div class="form-group">
+          <label for="ticker">ティッカーシンボル</label>
+          <input type="text" id="ticker" placeholder="例: AAPL, NVDA, MSFT" maxlength="10" required>
+        </div>
+        <button type="submit" class="analyze-btn" id="analyzeBtn">
+          📊 分析開始
+        </button>
+      </form>
+
+      <details class="api-settings">
+        <summary>⚙️ API設定（Alpha Vantage）</summary>
+        <div class="api-settings-content">
+          <input type="text" id="alphaVantageKey" placeholder="Alpha Vantage APIキー（無料取得可）">
+          <a href="https://www.alphavantage.co/support/#api-key" target="_blank" class="external-link"
+            style="padding: 10px 14px;">
+            🔑 無料APIキー取得サイトへ
+          </a>
+        </div>
+        <div
+          style="margin-top: 16px; padding: 16px; background: #eff6ff; border-radius: 12px; font-size: 0.9rem; color: #1e40af; line-height: 1.8;">
+          <strong style="font-size: 1rem;">🔑 Alpha Vantage APIキー取得・設定方法</strong>
+          <hr style="margin: 12px 0; border: none; border-top: 1px solid #bfdbfe;">
+
+          <strong>▶ 取得サイト:</strong><br>
+          <a href="https://www.alphavantage.co/support/#api-key" target="_blank"
+            style="color: #1d4ed8;">https://www.alphavantage.co/support/#api-key</a>
+
+          <hr style="margin: 12px 0; border: none; border-top: 1px solid #bfdbfe;">
+
+          <strong>▶ 取得手順:</strong>
+          <ol style="margin: 8px 0 0 20px; padding: 0;">
+            <li><strong>サイトにアクセス</strong> → 上記リンクをクリック</li>
+            <li><strong>質問に回答</strong> → 「Which of the following best describes you?」で<strong>「Investor」</strong>を選択
+            </li>
+            <li><strong>組織名</strong> → 空欄でもOK（または「Personal」と入力）</li>
+            <li><strong>メールアドレス入力</strong> → 正規のメールアドレスを入力</li>
+            <li><strong>「GET FREE API KEY」をクリック</strong></li>
+            <li><strong>メール確認</strong> → Alpha Vantageからメールが届きます</li>
+            <li><strong>APIキーをコピー</strong> → メール内のAPIキー（英数字の文字列）をコピー</li>
+            <li><strong>上のテキストボックスに貼り付け</strong></li>
+          </ol>
+
+          <hr style="margin: 12px 0; border: none; border-top: 1px solid #bfdbfe;">
+
+          <strong>▶ 無料枠の制限:</strong><br>
+          📊 <strong>25リクエスト/日</strong>（1銘柄分析 = 1リクエスト）<br>
+          ⏰ 1日に最大25銘柄まで分析可能<br>
+          🔄 毎日0:00 UTCにリセット
+
+          <hr style="margin: 12px 0; border: none; border-top: 1px solid #bfdbfe;">
+
+          <strong>⚠️ 注意:</strong><br>
+          • APIキーは自動保存されます（ブラウザのローカルストレージ）<br>
+          • デモキーでも動作しますが、制限が厳しいため専用キー取得を推奨
+        </div>
+      </details>
+    </section>
+
+    <!-- ローディング -->
+    <div class="loading" id="loading" style="display: none;">
+      <div class="spinner"></div>
+      <p>データを取得中...</p>
+    </div>
+
+    <!-- エラー表示 -->
+    <div class="error" id="error" style="display: none;"></div>
+
+    <!-- 結果表示 -->
+    <div class="results" id="results">
+      <!-- 銘柄ヘッダー -->
+      <section class="section">
+        <div class="stock-header">
+          <div class="stock-info">
+            <h2 id="stockName">-</h2>
+            <span class="ticker" id="stockTicker">-</span>
+          </div>
+          <div class="stock-price">
+            <div class="current" id="currentPrice">-</div>
+            <div class="change" id="priceChange">-</div>
+          </div>
+        </div>
+
+        <div class="metrics-grid" id="metricsGrid"></div>
+
+        <div class="external-links">
+          <a class="external-link" id="tradingViewLink" href="#" target="_blank">📈 TradingView</a>
+          <a class="external-link" id="yahooLink" href="#" target="_blank">📊 Yahoo Finance</a>
+          <a class="external-link" id="finvizLink" href="#" target="_blank">🔍 Finviz</a>
+        </div>
+      </section>
+
+      <!-- 株価チャート -->
+      <section class="section">
+        <h3 class="section-title">
+          📈 株価チャート
+          <span class="data-timestamp" id="chartTimestamp">直近6ヶ月</span>
+        </h3>
+        <div style="position: relative; height: 280px; width: 100%;">
+          <canvas id="priceChart"></canvas>
+        </div>
+        <div style="text-align: right; margin-top: 4px;">
+          <button onclick="resetChartZoom()"
+            style="padding: 4px 10px; font-size: 0.7rem; background: var(--bg-accent); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">🔄
+            リセット</button>
+        </div>
+        <div
+          style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; font-size: 0.75rem;">
+          <span style="display: flex; align-items: center; gap: 4px;">
+            <span style="width: 12px; height: 3px; background: #3b82f6;"></span> 株価
+          </span>
+          <span style="display: flex; align-items: center; gap: 4px;">
+            <span style="width: 12px; height: 2px; background: #f59e0b;"></span> 10EMA
+          </span>
+          <span style="display: flex; align-items: center; gap: 4px;">
+            <span style="width: 12px; height: 2px; background: #10b981;"></span> 21EMA
+          </span>
+          <span style="display: flex; align-items: center; gap: 4px;">
+            <span style="width: 12px; height: 2px; background: #8b5cf6;"></span> 50EMA
+          </span>
+          <span style="display: flex; align-items: center; gap: 4px;">
+            <span style="width: 12px; height: 2px; background: #ef4444;"></span> 200EMA
+          </span>
+        </div>
+      </section>
+
+      <!-- 分析結果 -->
+      <section class="section">
+        <h3 class="section-title">📊 CANSLIM / Minervini 分析</h3>
+        <div class="analysis-grid" id="analysisGrid"></div>
+      </section>
+
+      <!-- トレンドテンプレート -->
+      <section class="section">
+        <h3 class="section-title">📈 トレンドテンプレート（Minervini）</h3>
+        <div id="trendTemplate"></div>
+      </section>
+    </div>
+
+    <footer>
+      <p>データソース: Alpha Vantage / Yahoo Finance (フォールバック)</p>
+      <p>※投資は自己責任で行ってください</p>
+    </footer>
+  </div>
+
+  <script>
+    // ========================================
+    // 米国株分析ツール
+    // ========================================
+
+    const ALPHA_VANTAGE_BASE = 'https://www.alphavantage.co/query';
+    const DEMO_API_KEY = 'demo'; // デモ用（制限あり）
+    const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+
+    // 要素取得
+    const searchForm = document.getElementById('searchForm');
+    const tickerInput = document.getElementById('ticker');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const results = document.getElementById('results');
+    const alphaVantageKeyInput = document.getElementById('alphaVantageKey');
+
+    // ローカルストレージからAPIキーを復元
+    const savedKey = localStorage.getItem('alphaVantageKey');
+    if (savedKey) alphaVantageKeyInput.value = savedKey;
+
+    // ========================================
+    // ページ読み込み時: マーケット状況を取得
+    // ========================================
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadMarketData();
+    });
+
+    async function loadMarketData() {
+      try {
+        // S&P 500 (^GSPC = $SPX) と NASDAQ Composite (^IXIC) を取得
+        const [spxData, nasdaqData] = await Promise.all([
+          fetchMarketIndex('^GSPC'),  // S&P 500 本指数
+          fetchMarketIndex('^IXIC')   // NASDAQ Composite
+        ]);
+
+        // S&P 500 表示
+        if (spxData) {
+          displayMarketIndex('spy', 'S&P 500', spxData);
+        }
+
+        // NASDAQ 表示
+        if (nasdaqData) {
+          displayMarketIndex('qqq', 'NASDAQ', nasdaqData);
+        }
+
+        // 総合判定
+        updateMarketStatus(spxData, nasdaqData);
+
+      } catch (e) {
+        console.error('Market data fetch error:', e);
+        document.getElementById('marketStatus').textContent = '❌ マーケットデータの取得に失敗しました';
+      }
+    }
+
+    async function fetchMarketIndex(ticker) {
+      try {
+        const endDate = Math.floor(Date.now() / 1000);
+        const startDate = endDate - (100 * 24 * 60 * 60); // 100日分
+        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${startDate}&period2=${endDate}&interval=1d`;
+
+        const response = await fetch(CORS_PROXY + encodeURIComponent(yahooUrl));
+        const json = await response.json();
+
+        const result = json.chart?.result?.[0];
+        if (!result) return null;
+
+        const timestamps = result.timestamp;
+        const ohlcv = result.indicators.quote[0];
+
+        const quotes = timestamps.map((ts, i) => ({
+          date: new Date(ts * 1000),
+          close: ohlcv.close[i],
+          volume: ohlcv.volume[i]
+        })).filter(q => q.close !== null);
+
+        return quotes;
+      } catch (e) {
+        console.error(`Failed to fetch ${ticker}:`, e);
+        return null;
+      }
+    }
+
+    function displayMarketIndex(prefix, name, quotes) {
+      if (!quotes || quotes.length < 50) return;
+
+      const current = quotes[quotes.length - 1];
+      const prev = quotes[quotes.length - 2];
+      const change = current.close - prev.close;
+      const changePercent = (change / prev.close) * 100;
+
+      // 50日移動平均
+      const ma50 = quotes.slice(-50).reduce((s, q) => s + q.close, 0) / 50;
+      const vsMA50 = ((current.close - ma50) / ma50) * 100;
+
+      // 価格表示
+      const valueEl = document.getElementById(`${prefix}Value`);
+      valueEl.textContent = `$${current.close.toFixed(2)}`;
+      valueEl.className = `value ${change >= 0 ? 'positive' : 'negative'}`;
+      valueEl.style.fontSize = '1rem';
+
+      // 変化率表示
+      const changeEl = document.getElementById(`${prefix}Change`);
+      changeEl.textContent = `${change >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
+      changeEl.style.color = change >= 0 ? 'var(--success)' : 'var(--danger)';
+
+      // vs 50日MA表示
+      const ma50El = document.getElementById(`${prefix}MA50`);
+      ma50El.textContent = `${vsMA50 >= 0 ? '+' : ''}${vsMA50.toFixed(2)}%`;
+      ma50El.className = `value ${vsMA50 >= 0 ? 'positive' : 'negative'}`;
+      ma50El.style.fontSize = '1rem';
+
+      // データ日時を更新（最新の株価データの日付）
+      const timestampEl = document.getElementById('marketTimestamp');
+      if (timestampEl && current.date) {
+        const dataDate = new Date(current.date);
+        timestampEl.textContent = `${dataDate.getFullYear()}/${(dataDate.getMonth() + 1).toString().padStart(2, '0')}/${dataDate.getDate().toString().padStart(2, '0')} 終値`;
+      }
+    }
+
+    // ========================================
+    // 売り抜け日（Distribution Day）カウント
+    // ========================================
+
+    /**
+     * 売り抜け日を検出してカウント
+     * 条件: 前日比0.2%以上下落 かつ 出来高が前日より増加
+     * マイナスカウント: 5%上昇 または 25営業日経過 で期限切れ
+     */
+    function countDistributionDays(quotes, lookbackDays = 25) {
+      if (!quotes || quotes.length < lookbackDays + 1) return { count: 0, details: [] };
+
+      const distributionDays = [];
+      const recentQuotes = quotes.slice(-(lookbackDays + 1));
+      const currentPrice = quotes[quotes.length - 1].close;
+
+      for (let i = 1; i < recentQuotes.length; i++) {
+        const today = recentQuotes[i];
+        const yesterday = recentQuotes[i - 1];
+
+        // 売り抜け日の条件: 0.2%以上下落 かつ 出来高増加
+        const priceChange = (today.close - yesterday.close) / yesterday.close;
+        const volumeIncreased = today.volume > yesterday.volume;
+
+        if (priceChange <= -0.002 && volumeIncreased) {
+          const daysAgo = recentQuotes.length - 1 - i;
+          const priceGainSince = (currentPrice - today.close) / today.close;
+
+          // マイナスカウント条件をチェック
+          const expiredBy25Days = daysAgo >= 25;
+          const expiredBy5PercentGain = priceGainSince >= 0.05;
+          const expired = expiredBy25Days || expiredBy5PercentGain;
+
+          distributionDays.push({
+            date: today.date,
+            price: today.close,
+            priceChange: (priceChange * 100).toFixed(2),
+            daysAgo,
+            expired,
+            expiredReason: expiredBy25Days ? '25日経過' : expiredBy5PercentGain ? '5%上昇' : null
+          });
+        }
+      }
+
+      // 有効な売り抜け日のみカウント
+      const activeDays = distributionDays.filter(d => !d.expired);
+
+      return {
+        count: activeDays.length,
+        total: distributionDays.length,
+        expiredCount: distributionDays.filter(d => d.expired).length,
+        details: distributionDays
+      };
+    }
+
+    function updateMarketStatus(spxData, nasdaqData) {
+      const statusEl = document.getElementById('marketStatus');
+      const detailsEl = document.getElementById('distributionDetails');
+
+      if (!spxData || !nasdaqData) {
+        statusEl.textContent = '❓ データ不足';
+        statusEl.style.color = 'var(--text-muted)';
+        return;
+      }
+
+      // S&P 500 と NASDAQ の状況を分析
+      const spyMA50 = spxData.slice(-50).reduce((s, q) => s + q.close, 0) / 50;
+      const qqqMA50 = nasdaqData.slice(-50).reduce((s, q) => s + q.close, 0) / 50;
+
+      const spyCurrent = spxData[spxData.length - 1].close;
+      const qqqCurrent = nasdaqData[nasdaqData.length - 1].close;
+
+      const spyAboveMA = spyCurrent > spyMA50;
+      const qqqAboveMA = qqqCurrent > qqqMA50;
+
+      // 売り抜け日カウント
+      const spyDist = countDistributionDays(spxData);
+      const nasdaqDist = countDistributionDays(nasdaqData);
+
+      // 売り抜け日をUIに表示
+      const spyDistEl = document.getElementById('spyDistribution');
+      const nasdaqDistEl = document.getElementById('nasdaqDistribution');
+      const spyDistDetailEl = document.getElementById('spyDistDetail');
+      const nasdaqDistDetailEl = document.getElementById('nasdaqDistDetail');
+
+      // 米国株基準: 0-4日=良好、5-6日=警戒、7日以上=調整
+      if (spyDistEl) {
+        spyDistEl.textContent = `${spyDist.count}日`;
+        spyDistEl.className = `value ${spyDist.count <= 4 ? 'positive' : spyDist.count <= 6 ? 'neutral' : 'negative'}`;
+        spyDistDetailEl.textContent = spyDist.expiredCount > 0 ?
+          `${spyDist.expiredCount}日期限切れ` : '25営業日中';
+      }
+
+      if (nasdaqDistEl) {
+        nasdaqDistEl.textContent = `${nasdaqDist.count}日`;
+        nasdaqDistEl.className = `value ${nasdaqDist.count <= 4 ? 'positive' : nasdaqDist.count <= 6 ? 'neutral' : 'negative'}`;
+        nasdaqDistDetailEl.textContent = nasdaqDist.expiredCount > 0 ?
+          `${nasdaqDist.expiredCount}日期限切れ` : '25営業日中';
+      }
+
+      // 総合売り抜け日（両指数の合計は使わず、高い方で判定）
+      const maxDistCount = Math.max(spyDist.count, nasdaqDist.count);
+
+      // 詳細表示を有効化
+      if (detailsEl) detailsEl.style.display = 'block';
+
+      // 総合判定（50日MA + 売り抜け日カウント）
+      let status, message;
+
+      // 米国株基準: 0-4日=確認、5-6日=圧力下、7日以上=調整局面(ピーク近づく)
+      if (spyAboveMA && qqqAboveMA && maxDistCount <= 4) {
+        status = 'CONFIRMED';
+        message = `✅ <span style="color: var(--success);">上昇トレンド確認</span> - 両指数50日MA上、売り抜け日${maxDistCount}日`;
+      } else if (maxDistCount >= 7) {
+        status = 'CORRECTION';
+        message = `❌ <span style="color: var(--danger);">調整局面</span> - 売り抜け日${maxDistCount}日（ピーク近づく）`;
+      } else if (maxDistCount >= 5 || !(spyAboveMA && qqqAboveMA)) {
+        status = 'UNDER_PRESSURE';
+        message = `⚠️ <span style="color: var(--warning);">圧力下</span> - 売り抜け日${maxDistCount}日`;
+      } else {
+        status = 'CONFIRMED';
+        message = `✅ <span style="color: var(--success);">上昇トレンド確認</span>`;
+      }
+
+      statusEl.innerHTML = message;
+    }
+
+    // ========================================
+    // フォーム送信
+    // ========================================
+    searchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const ticker = tickerInput.value.toUpperCase().trim();
+      if (!ticker) return;
+
+      // APIキーを保存
+      const apiKey = alphaVantageKeyInput.value.trim() || DEMO_API_KEY;
+      if (alphaVantageKeyInput.value.trim()) {
+        localStorage.setItem('alphaVantageKey', alphaVantageKeyInput.value.trim());
+      }
+
+      await analyzeStock(ticker, apiKey);
+    });
+
+    // 銘柄分析
+    async function analyzeStock(ticker, apiKey) {
+      showLoading(true);
+      hideError();
+      results.classList.remove('show');
+
+      try {
+        // 株価データを取得
+        const data = await fetchStockData(ticker, apiKey);
+
+        if (!data || data.length < 50) {
+          throw new Error('十分なデータが取得できませんでした。ティッカーを確認してください。');
+        }
+
+        // 分析を実行
+        const analysis = performAnalysis(ticker, data);
+
+        // 結果を表示
+        displayResults(ticker, data, analysis);
+
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // 株価データ取得（Alpha Vantage → Yahoo Financeフォールバック）
+    async function fetchStockData(ticker, apiKey) {
+      try {
+        // Alpha Vantageを試す
+        const data = await fetchFromAlphaVantage(ticker, apiKey);
+        if (data && data.length >= 50) return data;
+      } catch (e) {
+        console.log('Alpha Vantage failed, trying Yahoo Finance...', e);
+      }
+
+      // Yahoo Financeフォールバック（CORSプロキシ経由）
+      try {
+        const data = await fetchFromYahooProxy(ticker);
+        if (data && data.length >= 50) return data;
+      } catch (e) {
+        console.log('Yahoo Finance also failed', e);
+      }
+
+      throw new Error('データの取得に失敗しました。しばらく待ってから再試行してください。');
+    }
+
+    // Alpha Vantage API
+    async function fetchFromAlphaVantage(ticker, apiKey) {
+      const url = `${ALPHA_VANTAGE_BASE}?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=full&apikey=${apiKey}`;
+      const response = await fetch(url);
+      const json = await response.json();
+
+      if (json['Error Message']) throw new Error(json['Error Message']);
+      if (json['Note']) throw new Error('API制限に達しました');
+
+      const timeSeries = json['Time Series (Daily)'];
+      if (!timeSeries) throw new Error('データが見つかりません');
+
+      const quotes = Object.entries(timeSeries)
+        .map(([date, values]) => ({
+          date: new Date(date),
+          open: parseFloat(values['1. open']),
+          high: parseFloat(values['2. high']),
+          low: parseFloat(values['3. low']),
+          close: parseFloat(values['4. close']),
+          volume: parseInt(values['5. volume'])
+        }))
+        .sort((a, b) => a.date - b.date);
+
+      return quotes;
+    }
+
+    // Yahoo Finance（CORSプロキシ経由） - フォールバック用
+    async function fetchFromYahooProxy(ticker) {
+      // 注意: 公開CORSプロキシは本番環境では推奨されません
+      const proxy = 'https://api.allorigins.win/raw?url=';
+      const endDate = Math.floor(Date.now() / 1000);
+      const startDate = endDate - (365 * 2 * 24 * 60 * 60); // 2年分
+      const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${startDate}&period2=${endDate}&interval=1d`;
+
+      const response = await fetch(proxy + encodeURIComponent(yahooUrl));
+      const json = await response.json();
+
+      const result = json.chart?.result?.[0];
+      if (!result) throw new Error('データが見つかりません');
+
+      const timestamps = result.timestamp;
+      const ohlcv = result.indicators.quote[0];
+
+      const quotes = timestamps.map((ts, i) => ({
+        date: new Date(ts * 1000),
+        open: ohlcv.open[i],
+        high: ohlcv.high[i],
+        low: ohlcv.low[i],
+        close: ohlcv.close[i],
+        volume: ohlcv.volume[i]
+      })).filter(q => q.close !== null);
+
+      return quotes;
+    }
+
+    // ========================================
+    // 分析ロジック
+    // ========================================
+
+    function performAnalysis(ticker, quotes) {
+      const len = quotes.length;
+      const current = quotes[len - 1];
+
+      // 移動平均を計算
+      const ma50 = calculateMA(quotes, 50);
+      const ma150 = calculateMA(quotes, 150);
+      const ma200 = calculateMA(quotes, 200);
+
+      // RS Rating（IBD擬似計算式）
+      const rsRating = calculateRSRating(quotes);
+
+      // VCPパターン検出
+      const vcp = detectVCP(quotes);
+
+      // 新高値分析
+      const newHighs = analyzeNewHighs(quotes);
+
+      // 出来高分析
+      const volumeAnalysis = analyzeVolume(quotes);
+
+      // トレンドテンプレート（Minervini）+ 4ステージ分類
+      const trendTemplate = checkTrendTemplate(quotes, ma50, ma150, ma200, rsRating);
+
+      return {
+        current,
+        ma50,
+        ma150,
+        ma200,
+        rsRating,
+        vcp,
+        newHighs,
+        volumeAnalysis,
+        trendTemplate
+      };
+    }
+
+    // 移動平均計算
+    function calculateMA(quotes, period) {
+      if (quotes.length < period) return null;
+      const slice = quotes.slice(-period);
+      return slice.reduce((sum, q) => sum + q.close, 0) / period;
+    }
+
+    // RS Rating計算（IBD擬似計算式）
+    function calculateRSRating(quotes) {
+      const len = quotes.length;
+      if (len < 64) return null;
+
+      const currentPrice = quotes[len - 1].close;
+
+      // 各期間の変化率
+      const price63 = quotes[len - 64]?.close;
+      const q1 = price63 ? ((currentPrice - price63) / price63) * 100 : 0;
+
+      const price126 = len >= 127 ? quotes[len - 127]?.close : null;
+      const q2 = price126 ? ((currentPrice - price126) / price126) * 100 : q1;
+
+      const price189 = len >= 190 ? quotes[len - 190]?.close : null;
+      const q3 = price189 ? ((currentPrice - price189) / price189) * 100 : q2;
+
+      const price252 = len >= 253 ? quotes[len - 253]?.close : null;
+      const q4 = price252 ? ((currentPrice - price252) / price252) * 100 : q3;
+
+      // 加重平均
+      const rsValue = (q1 * 0.4) + (q2 * 0.2) + (q3 * 0.2) + (q4 * 0.2);
+
+      return rsValue;
+    }
+
+    // VCPパターン検出
+    function detectVCP(quotes) {
+      if (quotes.length < 60) return { detected: false };
+
+      const recent = quotes.slice(-60);
+      const weeklyRanges = [];
+
+      // 週単位でボラティリティ計算
+      for (let i = 0; i < recent.length - 5; i += 5) {
+        const week = recent.slice(i, i + 5);
+        const high = Math.max(...week.map(q => q.high));
+        const low = Math.min(...week.map(q => q.low));
+        const range = ((high - low) / low) * 100;
+        weeklyRanges.push(range);
+      }
+
+      // 収縮をカウント
+      let contractions = 0;
+      for (let i = 1; i < weeklyRanges.length; i++) {
+        if (weeklyRanges[i] < weeklyRanges[i - 1] * 0.85) {
+          contractions++;
+        }
+      }
+
+      const lastRange = weeklyRanges[weeklyRanges.length - 1];
+      const detected = contractions >= 2 && lastRange < 10;
+
+      return {
+        detected,
+        contractions,
+        lastRange: lastRange.toFixed(2)
+      };
+    }
+
+    // 新高値分析
+    function analyzeNewHighs(quotes) {
+      const current = quotes[quotes.length - 1];
+      const high52Week = Math.max(...quotes.slice(-252).map(q => q.high));
+      const low52Week = Math.min(...quotes.slice(-252).map(q => q.low));
+
+      const distanceFromHigh = ((high52Week - current.close) / high52Week) * 100;
+      const distanceFromLow = ((current.close - low52Week) / low52Week) * 100;
+
+      const isAtNewHigh = distanceFromHigh <= 3;
+      const isNear = distanceFromHigh <= 10;
+
+      return {
+        high52Week,
+        low52Week,
+        distanceFromHigh: distanceFromHigh.toFixed(2),
+        distanceFromLow: distanceFromLow.toFixed(2),
+        isAtNewHigh,
+        isNear
+      };
+    }
+
+    // 出来高分析
+    function analyzeVolume(quotes) {
+      const recent5 = quotes.slice(-5);
+      const recent50 = quotes.slice(-50);
+
+      const avgVol5 = recent5.reduce((s, q) => s + q.volume, 0) / 5;
+      const avgVol50 = recent50.reduce((s, q) => s + q.volume, 0) / 50;
+
+      const volumeRatio = avgVol5 / avgVol50;
+      const isDryUp = volumeRatio < 0.7;
+      const isSurge = volumeRatio > 1.5;
+
+      return {
+        avgVol5,
+        avgVol50,
+        volumeRatio: (volumeRatio * 100).toFixed(0),
+        isDryUp,
+        isSurge
+      };
+    }
+
+    // トレンドテンプレート（Minervini）+ 4ステージ分類
+    function checkTrendTemplate(quotes, ma50, ma150, ma200, rsRating) {
+      if (!ma50 || !ma150 || !ma200) return null;
+
+      const current = quotes[quotes.length - 1].close;
+      const high52 = Math.max(...quotes.slice(-252).map(q => q.high));
+      const low52 = Math.min(...quotes.slice(-252).map(q => q.low));
+
+      // 200日MAの傾き（1ヶ月前と比較）
+      const ma200_1month_ago = calculateMA(quotes.slice(0, -20), 200);
+      const ma200Rising = ma200_1month_ago ? ma200 > ma200_1month_ago : null;
+
+      // 追加: 50日MAの傾き
+      const ma50_1month_ago = calculateMA(quotes.slice(0, -20), 50);
+      const ma50Rising = ma50_1month_ago ? ma50 > ma50_1month_ago : null;
+
+      const criteria = {
+        priceAbove150And200: current > ma150 && current > ma200,
+        ma150AboveMA200: ma150 > ma200,
+        priceAboveMA50: current > ma50,
+        ma200Rising: ma200Rising,
+        above30PercentFromLow: ((current - low52) / low52) * 100 >= 30,
+        within25PercentOfHigh: ((high52 - current) / high52) * 100 <= 25,
+      };
+
+      const passCount = Object.values(criteria).filter(v => v === true).length;
+      const passed = passCount >= 5;
+
+      // ========================================
+      // Minervini 4ステージ分類
+      // ========================================
+      let stage, stageDescription, stageAdvice;
+
+      // 第2ステージの条件（上昇局面 - エントリー対象）
+      const isStage2 =
+        current > ma150 &&
+        current > ma200 &&
+        ma150 > ma200 &&
+        current > ma50 &&
+        ma200Rising &&
+        ((current - low52) / low52) >= 0.30 &&
+        ((high52 - current) / high52) <= 0.25;
+
+      // 第4ステージ（下落局面）
+      const isStage4 =
+        current < ma200 &&
+        ma200_1month_ago && ma200 < ma200_1month_ago;
+
+      // 第3ステージ（天井圏）
+      const isStage3 =
+        current < ma50 &&
+        current > ma200 &&
+        !ma50Rising;
+
+      // 第1ステージ（底固め）
+      const isStage1 =
+        !isStage2 && !isStage3 && !isStage4 &&
+        current < ma200 &&
+        ma200_1month_ago && ma200 >= ma200_1month_ago * 0.98; // MAがほぼ横ばい
+
+      if (isStage2) {
+        stage = 2;
+        stageDescription = '🚀 第2ステージ（上昇局面）';
+        stageAdvice = '✅ エントリー対象 - 機関投資家が買い集め中';
+      } else if (isStage4) {
+        stage = 4;
+        stageDescription = '📉 第4ステージ（下落局面）';
+        stageAdvice = '❌ 回避推奨 - 機関投資家が投げ売り中';
+      } else if (isStage3) {
+        stage = 3;
+        stageDescription = '⚠️ 第3ステージ（天井圏）';
+        stageAdvice = '⚠️ 利確検討 - 機関投資家が売り抜け中';
+      } else {
+        stage = 1;
+        stageDescription = '🔄 第1ステージ（底固め）';
+        stageAdvice = '⏳ 待機推奨 - まだ上昇の兆候なし';
+      }
+
+      return {
+        criteria,
+        passCount,
+        passed,
+        stage,
+        stageDescription,
+        stageAdvice,
+        ma50Rising,
+        ma200Rising
+      };
+    }
+
+    // ========================================
+    // 結果表示
+    // ========================================
+
+    function displayResults(ticker, quotes, analysis) {
+      const current = analysis.current;
+      const prev = quotes[quotes.length - 2];
+      const change = current.close - prev.close;
+      const changePercent = (change / prev.close) * 100;
+
+      // ヘッダー情報
+      document.getElementById('stockName').textContent = ticker;
+      document.getElementById('stockTicker').textContent = `NYSE / NASDAQ`;
+      document.getElementById('currentPrice').textContent = `$${current.close.toFixed(2)}`;
+
+      const changeEl = document.getElementById('priceChange');
+      changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%)`;
+      changeEl.className = `change ${change >= 0 ? 'positive' : 'negative'}`;
+
+      // 外部リンク
+      document.getElementById('tradingViewLink').href = `https://www.tradingview.com/symbols/${ticker}/`;
+      document.getElementById('yahooLink').href = `https://finance.yahoo.com/quote/${ticker}`;
+      document.getElementById('finvizLink').href = `https://finviz.com/quote.ashx?t=${ticker}`;
+
+      // メトリクスグリッド
+      const metricsHtml = `
+        <div class="metric-card">
+          <div class="label">RS Rating</div>
+          <div class="value ${analysis.rsRating >= 0 ? 'positive' : 'negative'}">
+            ${analysis.rsRating ? (analysis.rsRating >= 0 ? '+' : '') + analysis.rsRating.toFixed(1) + '%' : '-'}
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="label">52週高値からの距離</div>
+          <div class="value ${parseFloat(analysis.newHighs.distanceFromHigh) <= 10 ? 'positive' : 'neutral'}">
+            -${analysis.newHighs.distanceFromHigh}%
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="label">52週安値からの上昇</div>
+          <div class="value positive">
+            +${analysis.newHighs.distanceFromLow}%
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="label">出来高（対50日平均）</div>
+          <div class="value ${parseInt(analysis.volumeAnalysis.volumeRatio) >= 150 ? 'positive' : 'neutral'}">
+            ${analysis.volumeAnalysis.volumeRatio}%
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="label">50日MA</div>
+          <div class="value ${current.close > analysis.ma50 ? 'positive' : 'negative'}">
+            $${analysis.ma50?.toFixed(2) || '-'}
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="label">200日MA</div>
+          <div class="value ${current.close > analysis.ma200 ? 'positive' : 'negative'}">
+            $${analysis.ma200?.toFixed(2) || '-'}
+          </div>
+        </div>
+      `;
+      document.getElementById('metricsGrid').innerHTML = metricsHtml;
+
+      // 分析グリッド
+      const analysisHtml = `
+        <div class="analysis-card">
+          <h4>📈 新高値分析</h4>
+          <div class="detail">
+            <span class="label">52週高値</span>
+            <span>$${analysis.newHighs.high52Week.toFixed(2)}</span>
+          </div>
+          <div class="detail">
+            <span class="label">52週安値</span>
+            <span>$${analysis.newHighs.low52Week.toFixed(2)}</span>
+          </div>
+          <div class="detail">
+            <span class="label">ステータス</span>
+            <span class="badge ${analysis.newHighs.isAtNewHigh ? 'pass' : analysis.newHighs.isNear ? 'warning' : 'fail'}">
+              ${analysis.newHighs.isAtNewHigh ? '🔥 新高値圏' : analysis.newHighs.isNear ? '🎯 接近中' : '📉 離れている'}
+            </span>
+          </div>
+        </div>
+        
+        <div class="analysis-card">
+          <h4>🔄 VCPパターン</h4>
+          <div class="detail">
+            <span class="label">検出</span>
+            <span class="badge ${analysis.vcp.detected ? 'pass' : 'fail'}">
+              ${analysis.vcp.detected ? '✅ 検出' : '❌ 未検出'}
+            </span>
+          </div>
+          <div class="detail">
+            <span class="label">収縮回数</span>
+            <span>${analysis.vcp.contractions}回</span>
+          </div>
+          <div class="detail">
+            <span class="label">最終レンジ</span>
+            <span>${analysis.vcp.lastRange}%</span>
+          </div>
+        </div>
+        
+        <div class="analysis-card">
+          <h4>📊 出来高分析</h4>
+          <div class="detail">
+            <span class="label">5日平均</span>
+            <span>${(analysis.volumeAnalysis.avgVol5 / 1000000).toFixed(2)}M</span>
+          </div>
+          <div class="detail">
+            <span class="label">50日平均</span>
+            <span>${(analysis.volumeAnalysis.avgVol50 / 1000000).toFixed(2)}M</span>
+          </div>
+          <div class="detail">
+            <span class="label">ステータス</span>
+            <span class="badge ${analysis.volumeAnalysis.isSurge ? 'pass' : analysis.volumeAnalysis.isDryUp ? 'warning' : 'fail'}">
+              ${analysis.volumeAnalysis.isSurge ? '📈 急増' : analysis.volumeAnalysis.isDryUp ? '🔻 枯渇' : '➖ 通常'}
+            </span>
+          </div>
+        </div>
+      `;
+      document.getElementById('analysisGrid').innerHTML = analysisHtml;
+
+      // トレンドテンプレート
+      if (analysis.trendTemplate) {
+        const tt = analysis.trendTemplate;
+        const templateHtml = `
+          <div class="metrics-grid" style="margin-bottom: 20px;">
+            <div class="metric-card">
+              <div class="label">合格条件</div>
+              <div class="value ${tt.passed ? 'positive' : 'negative'}">${tt.passCount}/6</div>
+            </div>
+          </div>
+          <div class="analysis-grid">
+            ${Object.entries(tt.criteria).map(([key, value]) => `
+              <div class="detail" style="padding: 12px; background: ${value ? '#dcfce7' : '#fee2e2'}; border-radius: 8px; margin-bottom: 8px;">
+                <span>${getTemplateLabel(key)}</span>
+                <span class="badge ${value ? 'pass' : 'fail'}">${value ? '✅' : '❌'}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        document.getElementById('trendTemplate').innerHTML = templateHtml;
+      }
+
+      // 4ステージ分類の表示（トレンドテンプレートセクションの上に追加）
+      if (analysis.trendTemplate && analysis.trendTemplate.stage) {
+        const tt = analysis.trendTemplate;
+        const stageColors = {
+          1: '#94a3b8', // グレー
+          2: '#10b981', // グリーン
+          3: '#f59e0b', // オレンジ
+          4: '#ef4444'  // レッド
+        };
+        const stageHtml = `
+          <div style="margin-bottom: 24px; padding: 20px; background: linear-gradient(135deg, ${stageColors[tt.stage]}15, ${stageColors[tt.stage]}05); border: 2px solid ${stageColors[tt.stage]}; border-radius: 16px;">
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+              <div style="font-size: 3rem; font-weight: 700; color: ${stageColors[tt.stage]};">${tt.stage}</div>
+              <div>
+                <div style="font-size: 1.2rem; font-weight: 600; color: ${stageColors[tt.stage]};">${tt.stageDescription}</div>
+                <div style="font-size: 0.95rem; color: var(--text-secondary); margin-top: 4px;">${tt.stageAdvice}</div>
+              </div>
+            </div>
+          </div>
+        `;
+        document.getElementById('trendTemplate').insertAdjacentHTML('afterbegin', stageHtml);
+      }
+
+      // チャート描画
+      drawPriceChart(quotes);
+
+      results.classList.add('show');
+    }
+
+    function getTemplateLabel(key) {
+      const labels = {
+        priceAbove150And200: '株価 > 150日MA & 200日MA',
+        ma150AboveMA200: '150日MA > 200日MA',
+        priceAboveMA50: '株価 > 50日MA',
+        ma200Rising: '200日MAが上昇トレンド',
+        above30PercentFromLow: '52週安値から30%以上上昇',
+        within25PercentOfHigh: '52週高値から25%以内'
+      };
+      return labels[key] || key;
+    }
+
+    // ユーティリティ
+    function showLoading(show) {
+      loading.style.display = show ? 'block' : 'none';
+      analyzeBtn.disabled = show;
+    }
+
+    function showError(message) {
+      error.textContent = '❌ ' + message;
+      error.style.display = 'block';
+    }
+
+    function hideError() {
+      error.style.display = 'none';
+    }
+
+    // ========================================
+    // チャート描画
+    // ========================================
+
+    let priceChartInstance = null;
+
+    // EMA計算
+    function calculateEMA(quotes, period) {
+      const k = 2 / (period + 1);
+      const emaValues = [];
+      let ema = null;
+
+      for (let i = 0; i < quotes.length; i++) {
+        if (i < period - 1) {
+          emaValues.push(null);
+        } else if (i === period - 1) {
+          // 最初のEMAはSMAとして計算
+          const sum = quotes.slice(0, period).reduce((s, q) => s + q.close, 0);
+          ema = sum / period;
+          emaValues.push(ema);
+        } else {
+          ema = quotes[i].close * k + ema * (1 - k);
+          emaValues.push(ema);
+        }
+      }
+      return emaValues;
+    }
+
+    function drawPriceChart(quotes) {
+      const ctx = document.getElementById('priceChart').getContext('2d');
+
+      // 既存のチャートを破棄
+      if (priceChartInstance) {
+        priceChartInstance.destroy();
+      }
+
+      // 直近6ヶ月（約126営業日）のデータを使用
+      const chartDays = Math.min(126, quotes.length);
+      const chartData = quotes.slice(-chartDays);
+
+      // EMAを計算（全データで計算し、表示範囲を抽出）
+      const ema10All = calculateEMA(quotes, 10);
+      const ema21All = calculateEMA(quotes, 21);
+      const ema50All = calculateEMA(quotes, 50);
+      const ema200All = calculateEMA(quotes, 200);
+
+      // 表示範囲のデータを抽出
+      const ema10 = ema10All.slice(-chartDays);
+      const ema21 = ema21All.slice(-chartDays);
+      const ema50 = ema50All.slice(-chartDays);
+      const ema200 = ema200All.slice(-chartDays);
+
+      const labels = chartData.map(q => {
+        const d = new Date(q.date);
+        return `${d.getMonth() + 1}/${d.getDate()}`;
+      });
+
+      // ローソク足データ
+      const candlestickData = chartData.map(q => ({
+        x: new Date(q.date).getTime(),
+        o: q.open,
+        h: q.high,
+        l: q.low,
+        c: q.close
+      }));
+
+      priceChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: '株価',
+              data: chartData.map(q => q.close),
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.1,
+              pointRadius: 0,
+              order: 0
+            },
+            {
+              label: '10 EMA',
+              data: ema10,
+              borderColor: '#f59e0b',
+              borderWidth: 1.5,
+              fill: false,
+              tension: 0.1,
+              pointRadius: 0,
+              order: 1
+            },
+            {
+              label: '21 EMA',
+              data: ema21,
+              borderColor: '#10b981',
+              borderWidth: 1.5,
+              fill: false,
+              tension: 0.1,
+              pointRadius: 0,
+              order: 2
+            },
+            {
+              label: '50 EMA',
+              data: ema50,
+              borderColor: '#8b5cf6',
+              borderWidth: 1.5,
+              fill: false,
+              tension: 0.1,
+              pointRadius: 0,
+              order: 3
+            },
+            {
+              label: '200 EMA',
+              data: ema200,
+              borderColor: '#ef4444',
+              borderWidth: 1.5,
+              fill: false,
+              tension: 0.1,
+              pointRadius: 0,
+              order: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              padding: 10,
+              titleFont: { size: 12 },
+              bodyFont: { size: 11 },
+              callbacks: {
+                label: function (context) {
+                  return `${context.dataset.label}: $${context.parsed.y?.toFixed(2) || '-'}`;
+                }
+              }
+            },
+            zoom: {
+              pan: {
+                enabled: true,
+                mode: 'x'
+              },
+              zoom: {
+                wheel: {
+                  enabled: true
+                },
+                pinch: {
+                  enabled: true
+                },
+                mode: 'x',
+                onZoomComplete: function ({ chart }) {
+                  // ズーム時にローソク足モードに切り替え
+                  const zoomLevel = chart.getZoomLevel();
+                  if (zoomLevel > 2) {
+                    switchToCandlestick(chart, chartData, ema10, ema21, ema50, ema200, labels);
+                  }
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              display: true,
+              grid: { display: false },
+              ticks: {
+                font: { size: 9 },
+                maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 8
+              }
+            },
+            y: {
+              display: true,
+              position: 'right',
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: {
+                font: { size: 10 },
+                callback: function (value) {
+                  return '$' + value.toFixed(0);
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // チャート期間を更新
+      const startDate = new Date(chartData[0].date);
+      const endDate = new Date(chartData[chartData.length - 1].date);
+      document.getElementById('chartTimestamp').textContent =
+        `${startDate.getMonth() + 1}/${startDate.getDate()} - ${endDate.getMonth() + 1}/${endDate.getDate()} (ホイールでズーム)`;
+    }
+
+    // ズーム時にローソク足に切り替え
+    function switchToCandlestick(chart, chartData, ema10, ema21, ema50, ema200, labels) {
+      const datasets = chart.data.datasets;
+
+      // 最初のデータセットをローソク足に変更
+      if (datasets[0].type !== 'candlestick') {
+        datasets[0] = {
+          label: 'OHLC',
+          type: 'candlestick',
+          data: chartData.map((q, i) => ({
+            x: i,
+            o: q.open,
+            h: q.high,
+            l: q.low,
+            c: q.close
+          })),
+          color: {
+            up: '#10b981',
+            down: '#ef4444',
+            unchanged: '#64748b'
+          },
+          borderColor: {
+            up: '#10b981',
+            down: '#ef4444',
+            unchanged: '#64748b'
+          },
+          order: 0
+        };
+        chart.update();
+      }
+    }
+
+    // ズームリセット
+    function resetChartZoom() {
+      if (priceChartInstance) {
+        priceChartInstance.resetZoom();
+      }
+    }
+  </script>
+</body>
+
+</html>

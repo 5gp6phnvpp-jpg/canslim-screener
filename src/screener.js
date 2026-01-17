@@ -1,22 +1,26 @@
 /**
  * メインスクリーニングエンジン
  * 
- * CANSLIM M/S/N/L + カップ・ウィズ・ハンドルで銘柄を選定
+ * CANSLIM M/S/N/L + カップ・ウィズ・ハンドル/VCPで銘柄を選定
  * + 決算発表予定日による決算リスク判定
+ * 
+ * IBD方式: 6ヶ月（126日）パフォーマンスで業種ランキング
+ * ミネルヴィニ方式: VCP（ボラティリティ収縮パターン）検出
  */
 
 import { analyzeMarketTrend } from './analysis/canslim/marketDirection.js';
 import { analyzeSupplyDemand } from './analysis/canslim/supplyDemand.js';
 import { analyzeNewHighs } from './analysis/canslim/newHighs.js';
-import { analyzeLeader, calculateIndustryRankings } from './analysis/canslim/leader.js';
+import { analyzeLeader, calculateIndustryRankings, calculateAllStockRS } from './analysis/canslim/leader.js';
 import { detectCupWithHandle } from './analysis/chartPatterns/cupWithHandle.js';
+import { detectVCP, detectBestPattern } from './analysis/chartPatterns/vcp.js';
 import { groupByIndustry } from './data/fetchStockList.js';
 import { analyzeEarningsRisk } from './data/fetchEarnings.js';
 
 /**
  * 単一銘柄のCANSLIM分析を実行
  */
-function analyzeStock(code, priceData, stockInfo, industryRankings, priceDataMap, earningsMap) {
+function analyzeStock(code, priceData, stockInfo, industryRankings, priceDataMap, earningsMap, sortedRSList = null) {
     const quotes = priceData.quotes;
 
     if (quotes.length < 50) {
@@ -32,11 +36,11 @@ function analyzeStock(code, priceData, stockInfo, industryRankings, priceDataMap
     // N: 新高値判定
     const newHighs = analyzeNewHighs(quotes);
 
-    // L: 業種リーダー判定
-    const leader = analyzeLeader(code, industryRankings, priceDataMap, stockInfo);
+    // L: 業種リーダー判定（全銘柄RSリストで正確なパーセンタイル計算）
+    const leader = analyzeLeader(code, industryRankings, priceDataMap, stockInfo, sortedRSList);
 
-    // チャートパターン: カップ・ウィズ・ハンドル
-    const pattern = detectCupWithHandle(quotes);
+    // チャートパターン: カップ・ウィズ・ハンドル + VCP
+    const pattern = detectBestPattern(quotes, detectCupWithHandle);
 
     // 決算リスク判定
     const earnings = analyzeEarningsRisk(code, earningsMap);
@@ -156,10 +160,15 @@ export async function runScreening(stockList, priceDataMap, indexData, earningsM
     // 業種別にグループ化
     const stocksByIndustry = groupByIndustry(stockList);
 
-    // L: 業種ランキング計算
-    console.log('📈 業種ランキング計算中...');
-    const industryRankings = calculateIndustryRankings(stocksByIndustry, priceDataMap, 20);
-    console.log(`   TOP3: ${industryRankings.slice(0, 3).map(r => `${r.industry}(${r.performance}%)`).join(', ')}`);
+    // L: 業種ランキング計算（IBD方式: 6ヶ月パフォーマンス）
+    console.log('📈 業種ランキング計算中（IBD方式: 6ヶ月）...');
+    const industryRankings = calculateIndustryRankings(stocksByIndustry, priceDataMap);
+    console.log(`   TOP3: ${industryRankings.slice(0, 3).map(r => `${r.industry}(RS:${r.rsRating}, ${r.performance}%)`).join(', ')}`);
+
+    // 全銘柄のRS値を計算（パーセンタイルランキング用）
+    console.log('📊 銘柄RS Rating計算中（IBD擬似計算式）...');
+    const { sortedRSList, count: rsCount } = calculateAllStockRS(stockList, priceDataMap);
+    console.log(`   ${rsCount}銘柄のRS値を計算`);
 
     // 全銘柄を分析
     console.log('🔬 銘柄分析中...');
@@ -180,7 +189,8 @@ export async function runScreening(stockList, priceDataMap, indexData, earningsM
             stock,
             industryRankings,
             priceDataMap,
-            earningsMap
+            earningsMap,
+            sortedRSList
         );
 
         if (result) {
