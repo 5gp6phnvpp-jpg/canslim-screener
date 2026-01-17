@@ -756,6 +756,18 @@
         <h3 class="section-title">📈 トレンドテンプレート（Minervini）</h3>
         <div id="trendTemplate"></div>
       </section>
+
+      <!-- ベースパターン -->
+      <section class="section">
+        <h3 class="section-title">🏗️ ベースパターン検出</h3>
+        <div id="basePatterns"></div>
+      </section>
+
+      <!-- リスク管理 -->
+      <section class="section">
+        <h3 class="section-title">🎯 リスク管理ルール</h3>
+        <div id="riskManagement"></div>
+      </section>
     </div>
 
     <footer>
@@ -1151,6 +1163,9 @@
       // VCPパターン検出
       const vcp = detectVCP(quotes);
 
+      // ベースパターン検出（強化版）
+      const basePatterns = detectBasePatterns(quotes);
+
       // 新高値分析
       const newHighs = analyzeNewHighs(quotes);
 
@@ -1160,6 +1175,9 @@
       // トレンドテンプレート（Minervini）+ 4ステージ分類
       const trendTemplate = checkTrendTemplate(quotes, ma50, ma150, ma200, rsRating);
 
+      // リスク管理ルール
+      const riskManagement = calculateRiskManagement(quotes, { ma50 });
+
       return {
         current,
         ma50,
@@ -1167,9 +1185,11 @@
         ma200,
         rsRating,
         vcp,
+        basePatterns,
         newHighs,
         volumeAnalysis,
-        trendTemplate
+        trendTemplate,
+        riskManagement
       };
     }
 
@@ -1237,6 +1257,166 @@
         detected,
         contractions,
         lastRange: lastRange.toFixed(2)
+      };
+    }
+
+    // ========================================
+    // ベースパターン検出（強化版）
+    // ========================================
+
+    function detectBasePatterns(quotes) {
+      if (quotes.length < 60) return { patterns: [], baseCount: 0 };
+
+      const patterns = [];
+      let baseCount = 0;
+
+      // 52週高値
+      const high52Week = Math.max(...quotes.slice(-252).map(q => q.high));
+      const current = quotes[quotes.length - 1];
+
+      // 1. フラットベース検出（5週間で15%以内の調整）
+      const last25 = quotes.slice(-25);  // 5週間
+      const flatHigh = Math.max(...last25.map(q => q.high));
+      const flatLow = Math.min(...last25.map(q => q.low));
+      const flatRange = ((flatHigh - flatLow) / flatHigh) * 100;
+
+      if (flatRange <= 15 && current.close > flatLow * 1.02) {
+        patterns.push({
+          name: 'フラットベース',
+          emoji: '📊',
+          description: `5週間のレンジ: ${flatRange.toFixed(1)}%`,
+          quality: flatRange <= 10 ? 'high' : 'medium'
+        });
+        baseCount++;
+      }
+
+      // 2. カップウィズハンドル検出（7-65週の調整、12-35%の深さ）
+      const last65Weeks = quotes.slice(-325);  // 約65週
+      if (last65Weeks.length >= 35) {
+        const cupHigh = Math.max(...last65Weeks.map(q => q.high));
+        const cupLow = Math.min(...last65Weeks.map(q => q.low));
+        const cupDepth = ((cupHigh - cupLow) / cupHigh) * 100;
+
+        if (cupDepth >= 12 && cupDepth <= 35) {
+          // 右側が上昇中かチェック
+          const rightSide = quotes.slice(-30);
+          const rightTrend = rightSide[rightSide.length - 1].close > rightSide[0].close;
+
+          if (rightTrend && current.close >= cupHigh * 0.85) {
+            patterns.push({
+              name: 'カップウィズハンドル',
+              emoji: '☕',
+              description: `深さ: ${cupDepth.toFixed(1)}%`,
+              quality: cupDepth <= 25 ? 'high' : 'medium'
+            });
+            baseCount++;
+          }
+        }
+      }
+
+      // 3. ダブルボトム検出
+      const last50 = quotes.slice(-50);
+      const lows = [];
+      for (let i = 5; i < last50.length - 5; i++) {
+        const isLocalLow = last50[i].low <= Math.min(...last50.slice(i - 5, i + 6).map(q => q.low));
+        if (isLocalLow) lows.push({ index: i, low: last50[i].low });
+      }
+
+      if (lows.length >= 2) {
+        const lastTwo = lows.slice(-2);
+        const lowDiff = Math.abs(lastTwo[0].low - lastTwo[1].low) / lastTwo[0].low * 100;
+        if (lowDiff <= 5 && lastTwo[1].index - lastTwo[0].index >= 10) {
+          patterns.push({
+            name: 'ダブルボトム',
+            emoji: '📈',
+            description: `底値差: ${lowDiff.toFixed(1)}%`,
+            quality: lowDiff <= 3 ? 'high' : 'medium'
+          });
+          baseCount++;
+        }
+      }
+
+      // 4. 3週間タイトパターン（3週間で5%以内）
+      const last15 = quotes.slice(-15);  // 3週間
+      const tightHigh = Math.max(...last15.map(q => q.close));
+      const tightLow = Math.min(...last15.map(q => q.close));
+      const tightRange = ((tightHigh - tightLow) / tightHigh) * 100;
+
+      if (tightRange <= 5) {
+        patterns.push({
+          name: '3週間タイト',
+          emoji: '🔒',
+          description: `レンジ: ${tightRange.toFixed(1)}%`,
+          quality: 'high'
+        });
+      }
+
+      // 5. 50日MAプルバック
+      const ma50 = quotes.slice(-50).reduce((s, q) => s + q.close, 0) / 50;
+      const distFromMA50 = ((current.close - ma50) / ma50) * 100;
+
+      if (distFromMA50 >= 0 && distFromMA50 <= 5) {
+        patterns.push({
+          name: '50日MAサポート',
+          emoji: '📍',
+          description: `MA50から: +${distFromMA50.toFixed(1)}%`,
+          quality: 'medium'
+        });
+      }
+
+      return {
+        patterns,
+        baseCount,
+        hasHighQuality: patterns.some(p => p.quality === 'high')
+      };
+    }
+
+    // ========================================
+    // リスク管理ルール計算
+    // ========================================
+
+    function calculateRiskManagement(quotes, analysis) {
+      const current = quotes[quotes.length - 1];
+      const price = current.close;
+
+      // ピボットポイント（直近の高値）
+      const recent20 = quotes.slice(-20);
+      const pivotPoint = Math.max(...recent20.map(q => q.high));
+
+      // 理想的なエントリーポイント（ピボット + 0.1%）
+      const idealEntry = pivotPoint * 1.001;
+
+      // ストップロス（ピボットから7-8%下）
+      const stopLoss7 = pivotPoint * 0.93;
+      const stopLoss8 = pivotPoint * 0.92;
+
+      // 利益確定目標（20-25%上昇）
+      const target20 = idealEntry * 1.20;
+      const target25 = idealEntry * 1.25;
+
+      // リスクリワードレシオ
+      const risk = idealEntry - stopLoss7;
+      const reward = target20 - idealEntry;
+      const riskRewardRatio = reward / risk;
+
+      // 現在価格がエントリー圏内か
+      const distanceFromPivot = ((price - pivotPoint) / pivotPoint) * 100;
+      const isInBuyZone = distanceFromPivot >= -2 && distanceFromPivot <= 5;
+      const isExtended = distanceFromPivot > 5;
+
+      return {
+        pivotPoint,
+        idealEntry,
+        stopLoss7,
+        stopLoss8,
+        target20,
+        target25,
+        riskRewardRatio: riskRewardRatio.toFixed(2),
+        distanceFromPivot: distanceFromPivot.toFixed(2),
+        isInBuyZone,
+        isExtended,
+        buyZoneStatus: isExtended ? '⚠️ 拡張中（エントリー非推奨）' :
+          isInBuyZone ? '✅ バイゾーン内' : '⏳ 待機中'
       };
     }
 
@@ -1546,6 +1726,79 @@
           </div>
         `;
         document.getElementById('trendTemplate').insertAdjacentHTML('afterbegin', stageHtml);
+      }
+
+      // ベースパターン表示
+      if (analysis.basePatterns) {
+        const bp = analysis.basePatterns;
+        let basePatternsHtml = '';
+
+        if (bp.patterns.length === 0) {
+          basePatternsHtml = `
+            <div style="padding: 16px; background: var(--bg-accent); border-radius: 10px; text-align: center;">
+              <span style="color: var(--text-muted);">📭 検出されたベースパターンはありません</span>
+            </div>
+          `;
+        } else {
+          basePatternsHtml = `
+            <div style="margin-bottom: 12px; padding: 12px; background: linear-gradient(135deg, #3b82f615, #3b82f605); border: 1px solid #3b82f6; border-radius: 10px;">
+              <span style="font-weight: 600;">🔢 ベースカウント: ${bp.baseCount}</span>
+              ${bp.hasHighQuality ? '<span style="margin-left: 12px;" class="badge pass">⭐ 高品質パターンあり</span>' : ''}
+            </div>
+            <div class="metrics-grid">
+              ${bp.patterns.map(p => `
+                <div class="metric-card" style="border-left: 3px solid ${p.quality === 'high' ? '#10b981' : '#f59e0b'};">
+                  <div class="label">${p.emoji} ${p.name}</div>
+                  <div class="value" style="font-size: 0.9rem;">${p.description}</div>
+                  <div class="badge ${p.quality === 'high' ? 'pass' : 'warning'}" style="margin-top: 4px; font-size: 0.65rem;">
+                    ${p.quality === 'high' ? '★ 高品質' : '○ 中品質'}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+        document.getElementById('basePatterns').innerHTML = basePatternsHtml;
+      }
+
+      // リスク管理表示
+      if (analysis.riskManagement) {
+        const rm = analysis.riskManagement;
+        const riskHtml = `
+          <div style="margin-bottom: 16px; padding: 16px; background: ${rm.isInBuyZone ? '#dcfce7' : rm.isExtended ? '#fef3c7' : '#f1f5f9'}; border-radius: 12px; text-align: center;">
+            <span style="font-size: 1.2rem; font-weight: 600;">${rm.buyZoneStatus}</span>
+            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">
+              ピボットから: ${rm.distanceFromPivot}%
+            </div>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="label">📍 ピボットポイント</div>
+              <div class="value" style="font-size: 1rem;">$${rm.pivotPoint.toFixed(2)}</div>
+            </div>
+            <div class="metric-card">
+              <div class="label">🎯 理想エントリー</div>
+              <div class="value positive" style="font-size: 1rem;">$${rm.idealEntry.toFixed(2)}</div>
+            </div>
+            <div class="metric-card">
+              <div class="label">🛑 ストップロス (7%)</div>
+              <div class="value negative" style="font-size: 1rem;">$${rm.stopLoss7.toFixed(2)}</div>
+            </div>
+            <div class="metric-card">
+              <div class="label">💰 利益目標 (20%)</div>
+              <div class="value positive" style="font-size: 1rem;">$${rm.target20.toFixed(2)}</div>
+            </div>
+            <div class="metric-card">
+              <div class="label">💎 利益目標 (25%)</div>
+              <div class="value positive" style="font-size: 1rem;">$${rm.target25.toFixed(2)}</div>
+            </div>
+            <div class="metric-card">
+              <div class="label">📊 リスクリワード比</div>
+              <div class="value" style="font-size: 1rem;">${rm.riskRewardRatio}:1</div>
+            </div>
+          </div>
+        `;
+        document.getElementById('riskManagement').innerHTML = riskHtml;
       }
 
       // チャート描画
