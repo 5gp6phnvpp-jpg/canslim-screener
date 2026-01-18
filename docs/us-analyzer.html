@@ -2680,37 +2680,58 @@
       localStorage.setItem('batchResults', JSON.stringify(saveData));
     }
 
-    // 保存済み結果を読み込み
-    function loadSavedResults() {
+    // 保存済み結果を読み込み（ローカル + GitHub Actions）
+    async function loadSavedResults() {
+      // まずGitHub Actionsの結果を取得
+      try {
+        const response = await fetch('./data/analysis-results.json');
+        if (response.ok) {
+          const githubData = await response.json();
+          if (githubData.results && githubData.results.length > 0) {
+            // GitHub Actionsの結果を表示
+            displayBatchResults(githubData, '🤖 自動分析（GitHub Actions）');
+            return;
+          }
+        }
+      } catch (e) {
+        console.log('GitHub Actions results not available:', e);
+      }
+
+      // GitHub Actionsの結果がなければローカルストレージから読み込み
       const saved = localStorage.getItem('batchResults');
       if (!saved) return;
 
       try {
         const data = JSON.parse(saved);
-        batchResults = data.results || [];
-
-        if (batchResults.length > 0) {
-          const resultsSection = document.getElementById('batchResultsSection');
-          const resultsGrid = document.getElementById('batchResultsGrid');
-
-          resultsSection.style.display = 'block';
-          resultsGrid.innerHTML = '';
-
-          // 保存日時を表示
-          const date = new Date(data.timestamp);
-          const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
-
-          resultsGrid.innerHTML = `
-            <div style="padding: 8px 12px; background: #eff6ff; border-radius: 8px; font-size: 0.8rem; color: #1d4ed8; margin-bottom: 8px;">
-              📅 保存日時: ${dateStr} | ${batchResults.filter(r => r.success).length}/${batchResults.length} 銘柄
-              <button onclick="clearSavedResults()" style="float: right; padding: 2px 8px; font-size: 0.7rem; background: white; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer;">クリア</button>
-            </div>
-          `;
-
-          sortBatchResults();
-        }
+        displayBatchResults(data, '💾 ローカル保存');
       } catch (e) {
         console.log('Failed to load saved results:', e);
+      }
+    }
+
+    // 結果を表示（共通関数）
+    function displayBatchResults(data, sourceLabel) {
+      batchResults = data.results || [];
+
+      if (batchResults.length > 0) {
+        const resultsSection = document.getElementById('batchResultsSection');
+        const resultsGrid = document.getElementById('batchResultsGrid');
+
+        resultsSection.style.display = 'block';
+        resultsGrid.innerHTML = '';
+
+        // 保存日時を表示
+        const date = new Date(data.timestamp);
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+        resultsGrid.innerHTML = `
+          <div style="padding: 8px 12px; background: #eff6ff; border-radius: 8px; font-size: 0.8rem; color: #1d4ed8; margin-bottom: 8px;">
+            ${sourceLabel} | 📅 ${dateStr} | ${batchResults.filter(r => r.success).length}/${batchResults.length} 銘柄
+            <button onclick="clearSavedResults()" style="float: right; padding: 2px 8px; font-size: 0.7rem; background: white; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer;">クリア</button>
+          </div>
+        `;
+
+        sortBatchResults();
       }
     }
 
