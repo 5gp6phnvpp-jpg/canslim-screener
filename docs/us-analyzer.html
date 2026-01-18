@@ -1261,6 +1261,124 @@
     }
 
     // ========================================
+    // VCPパターン検出（ミネルヴィニ定義準拠）
+    // Volatility Contraction Pattern
+    // ========================================
+
+    function detectVCPPattern(quotes) {
+      if (quotes.length < 60) {
+        return { isVCP: false, contractionCount: 0, lastContraction: 0, quality: 'none' };
+      }
+
+      const last60 = quotes.slice(-60);  // 約12週間のデータ
+
+      // ピークとトラフを検出
+      const pivots = [];
+      for (let i = 3; i < last60.length - 3; i++) {
+        const curr = last60[i];
+        const prevHigh = Math.max(...last60.slice(i - 3, i).map(q => q.high));
+        const nextHigh = Math.max(...last60.slice(i + 1, i + 4).map(q => q.high));
+        const prevLow = Math.min(...last60.slice(i - 3, i).map(q => q.low));
+        const nextLow = Math.min(...last60.slice(i + 1, i + 4).map(q => q.low));
+
+        // ピーク検出
+        if (curr.high >= prevHigh && curr.high >= nextHigh) {
+          pivots.push({ type: 'peak', index: i, price: curr.high, volume: curr.volume });
+        }
+        // トラフ検出
+        if (curr.low <= prevLow && curr.low <= nextLow) {
+          pivots.push({ type: 'trough', index: i, price: curr.low, volume: curr.volume });
+        }
+      }
+
+      // 収縮を検出
+      const contractions = [];
+      const peaks = pivots.filter(p => p.type === 'peak');
+      const troughs = pivots.filter(p => p.type === 'trough');
+
+      if (peaks.length < 2 || troughs.length < 2) {
+        return { isVCP: false, contractionCount: 0, lastContraction: 0, quality: 'none' };
+      }
+
+      // 連続する収縮を計算
+      for (let i = 0; i < Math.min(peaks.length - 1, troughs.length); i++) {
+        const peak = peaks[i];
+        // このピーク後の最初のトラフを見つける
+        const trough = troughs.find(t => t.index > peak.index);
+        if (trough) {
+          const contraction = ((peak.price - trough.price) / peak.price) * 100;
+          contractions.push({
+            contraction,
+            peakPrice: peak.price,
+            troughPrice: trough.price,
+            volume: (peak.volume + trough.volume) / 2
+          });
+        }
+      }
+
+      if (contractions.length < 2) {
+        return { isVCP: false, contractionCount: 0, lastContraction: 0, quality: 'none' };
+      }
+
+      // VCP条件をチェック
+      // 1. 収縮が減少しているか
+      let contractionsDecreasing = true;
+      for (let i = 1; i < contractions.length; i++) {
+        if (contractions[i].contraction > contractions[i - 1].contraction * 1.1) {
+          contractionsDecreasing = false;
+          break;
+        }
+      }
+
+      // 2. 出来高が減少しているか
+      let volumeDecreasing = true;
+      const recentVolume = quotes.slice(-10).reduce((s, q) => s + q.volume, 0) / 10;
+      const olderVolume = quotes.slice(-30, -10).reduce((s, q) => s + q.volume, 0) / 20;
+      volumeDecreasing = recentVolume < olderVolume;
+
+      // 3. ハイヤーロウ形成しているか
+      let higherLows = true;
+      const troughPrices = troughs.map(t => t.price);
+      for (let i = 1; i < Math.min(troughPrices.length, 3); i++) {
+        if (troughPrices[i] < troughPrices[i - 1] * 0.98) {
+          higherLows = false;
+          break;
+        }
+      }
+
+      // 4. 最終収縮が小さいか（10%未満が理想）
+      const lastContraction = contractions[contractions.length - 1].contraction;
+      const tightContraction = lastContraction < 10;
+
+      // VCP判定
+      const isVCP = contractionsDecreasing && contractions.length >= 2;
+
+      // 品質判定
+      let quality = 'none';
+      if (isVCP) {
+        const score = (contractionsDecreasing ? 1 : 0) +
+          (volumeDecreasing ? 1 : 0) +
+          (higherLows ? 1 : 0) +
+          (tightContraction ? 1 : 0) +
+          (contractions.length >= 3 ? 1 : 0);
+
+        if (score >= 4) quality = 'high';
+        else if (score >= 2) quality = 'medium';
+        else quality = 'low';
+      }
+
+      return {
+        isVCP,
+        contractionCount: contractions.length,
+        lastContraction,
+        contractionsDecreasing,
+        volumeDecreasing,
+        higherLows,
+        quality
+      };
+    }
+
+    // ========================================
     // ベースパターン検出（強化版）
     // ========================================
 
@@ -1336,13 +1454,28 @@
         }
       }
 
-      // 4. 3週間タイトパターン（3週間で5%以内）
+      // 4. VCPパターン検出（ミネルヴィニ定義準拠）
+      // - 3-4回の収縮（各収縮は前より小さい）
+      // - 出来高減少
+      // - ハイヤーロウ形成
+      const vcpResult = detectVCPPattern(quotes);
+      if (vcpResult.isVCP) {
+        patterns.push({
+          name: 'VCPパターン',
+          emoji: '📐',
+          description: `収縮${vcpResult.contractionCount}回, 最終収縮${vcpResult.lastContraction.toFixed(1)}%`,
+          quality: vcpResult.quality
+        });
+        if (vcpResult.quality === 'high') baseCount++;
+      }
+
+      // 5. 3週間タイト（VCPの簡易版）
       const last15 = quotes.slice(-15);  // 3週間
       const tightHigh = Math.max(...last15.map(q => q.close));
       const tightLow = Math.min(...last15.map(q => q.close));
       const tightRange = ((tightHigh - tightLow) / tightHigh) * 100;
 
-      if (tightRange <= 5) {
+      if (tightRange <= 5 && !vcpResult.isVCP) {
         patterns.push({
           name: '3週間タイト',
           emoji: '🔒',
