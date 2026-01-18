@@ -547,6 +547,18 @@
         grid-template-columns: repeat(3, 1fr);
       }
     }
+
+    /* 一括分析結果カード */
+    .batch-result-card {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .batch-result-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-color: var(--primary) !important;
+    }
   </style>
 </head>
 
@@ -665,6 +677,60 @@
           • デモキーでも動作しますが、制限が厳しいため専用キー取得を推奨
         </div>
       </details>
+    </section>
+
+    <!-- ウォッチリスト -->
+    <section class="section">
+      <details class="api-settings" id="watchlistSection">
+        <summary>📋 ウォッチリスト（一括分析）</summary>
+        <div style="padding: 16px;">
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <input type="text" id="watchlistInput" placeholder="銘柄を追加（例: AAPL, MSFT, NVDA）"
+              style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;">
+            <button onclick="addToWatchlist()"
+              style="padding: 10px 16px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer;">
+              ➕ 追加
+            </button>
+          </div>
+
+          <div id="watchlistTags"
+            style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 32px;">
+            <!-- 銘柄タグがここに追加される -->
+          </div>
+
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button onclick="analyzeAllWatchlist()" id="batchAnalyzeBtn"
+              style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600;">
+              🚀 一括分析開始
+            </button>
+            <button onclick="clearWatchlist()"
+              style="padding: 12px 16px; background: var(--bg-accent); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;">
+              🗑️ クリア
+            </button>
+          </div>
+
+          <div id="batchProgress" style="display: none; margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span id="batchStatus">分析中...</span>
+              <span id="batchCount">0/0</span>
+            </div>
+            <div style="height: 8px; background: var(--bg-accent); border-radius: 4px; overflow: hidden;">
+              <div id="batchProgressBar"
+                style="height: 100%; background: var(--primary); width: 0%; transition: width 0.3s;"></div>
+            </div>
+          </div>
+
+          <div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">
+            💡 ヒント: カンマ区切りで複数銘柄を一度に追加可能 | APIレート制限を考慮し15秒間隔で分析
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- 一括分析結果サマリー -->
+    <section class="section" id="batchResultsSection" style="display: none;">
+      <h3 class="section-title">📊 一括分析結果</h3>
+      <div id="batchResultsGrid" style="display: grid; gap: 12px;"></div>
     </section>
 
     <!-- ローディング -->
@@ -2379,6 +2445,223 @@
         console.log('Sync error:', e);
       }
     }
+
+    // ========================================
+    // ウォッチリスト機能
+    // ========================================
+
+    let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+    let batchResults = [];
+
+    // ウォッチリスト初期化
+    function initWatchlist() {
+      renderWatchlistTags();
+    }
+
+    // ウォッチリストに銘柄を追加
+    function addToWatchlist() {
+      const input = document.getElementById('watchlistInput');
+      const tickers = input.value.toUpperCase().split(',').map(t => t.trim()).filter(t => t);
+
+      tickers.forEach(ticker => {
+        if (ticker && !watchlist.includes(ticker)) {
+          watchlist.push(ticker);
+        }
+      });
+
+      localStorage.setItem('watchlist', JSON.stringify(watchlist));
+      input.value = '';
+      renderWatchlistTags();
+    }
+
+    // ウォッチリストから銘柄を削除
+    function removeFromWatchlist(ticker) {
+      watchlist = watchlist.filter(t => t !== ticker);
+      localStorage.setItem('watchlist', JSON.stringify(watchlist));
+      renderWatchlistTags();
+    }
+
+    // ウォッチリストをクリア
+    function clearWatchlist() {
+      watchlist = [];
+      localStorage.setItem('watchlist', JSON.stringify(watchlist));
+      renderWatchlistTags();
+      document.getElementById('batchResultsSection').style.display = 'none';
+    }
+
+    // ウォッチリストタグを表示
+    function renderWatchlistTags() {
+      const container = document.getElementById('watchlistTags');
+      if (watchlist.length === 0) {
+        container.innerHTML = '<span style="color: var(--text-muted); font-size: 0.85rem;">銘柄を追加してください...</span>';
+        return;
+      }
+
+      container.innerHTML = watchlist.map(ticker => `
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: var(--bg-accent); border-radius: 20px; font-size: 0.85rem; font-weight: 500;">
+          ${ticker}
+          <button onclick="removeFromWatchlist('${ticker}')" style="background: none; border: none; cursor: pointer; padding: 0; margin-left: 4px; color: var(--text-muted);">✕</button>
+        </span>
+      `).join('');
+    }
+
+    // 一括分析開始
+    async function analyzeAllWatchlist() {
+      if (watchlist.length === 0) {
+        alert('ウォッチリストに銘柄を追加してください');
+        return;
+      }
+
+      const apiKey = document.getElementById('alphaVantageKey').value || localStorage.getItem('alphaVantageKey');
+      if (!apiKey) {
+        alert('APIキーを設定してください');
+        return;
+      }
+
+      batchResults = [];
+      const progressDiv = document.getElementById('batchProgress');
+      const progressBar = document.getElementById('batchProgressBar');
+      const statusSpan = document.getElementById('batchStatus');
+      const countSpan = document.getElementById('batchCount');
+      const resultsSection = document.getElementById('batchResultsSection');
+      const resultsGrid = document.getElementById('batchResultsGrid');
+
+      progressDiv.style.display = 'block';
+      resultsSection.style.display = 'block';
+      resultsGrid.innerHTML = '';
+
+      const btn = document.getElementById('batchAnalyzeBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ 分析中...';
+
+      for (let i = 0; i < watchlist.length; i++) {
+        const ticker = watchlist[i];
+
+        // 進捗更新
+        countSpan.textContent = `${i + 1}/${watchlist.length}`;
+        progressBar.style.width = `${((i + 1) / watchlist.length) * 100}%`;
+        statusSpan.textContent = `${ticker} を分析中...`;
+
+        try {
+          // データ取得
+          const quotes = await fetchStockData(ticker, apiKey);
+          if (quotes && quotes.length > 0) {
+            const analysis = performAnalysis(quotes);
+
+            const result = {
+              ticker,
+              success: true,
+              price: analysis.current.close,
+              rsRating: analysis.rsRating,
+              stage: analysis.trendTemplate?.stage || '-',
+              passCount: analysis.trendTemplate?.passCount || 0,
+              vcpDetected: analysis.basePatterns?.patterns.some(p => p.name === 'VCPパターン'),
+              basePatterns: analysis.basePatterns?.patterns.map(p => p.name) || [],
+              buyZone: analysis.riskManagement?.isInBuyZone || false,
+              rrRatio: analysis.riskManagement?.riskRewardRatio || '-'
+            };
+            batchResults.push(result);
+
+            // 結果カードを追加
+            appendBatchResultCard(result);
+          } else {
+            batchResults.push({ ticker, success: false, error: 'データ取得失敗' });
+            appendBatchResultCard({ ticker, success: false });
+          }
+        } catch (error) {
+          batchResults.push({ ticker, success: false, error: error.message });
+          appendBatchResultCard({ ticker, success: false, error: error.message });
+        }
+
+        // APIレート制限を考慮（15秒待機）
+        if (i < watchlist.length - 1) {
+          statusSpan.textContent = `次の分析まで15秒待機中...`;
+          await new Promise(resolve => setTimeout(resolve, 15000));
+        }
+      }
+
+      statusSpan.textContent = `✅ 完了！ ${batchResults.filter(r => r.success).length}/${watchlist.length} 銘柄分析成功`;
+      btn.disabled = false;
+      btn.textContent = '🚀 一括分析開始';
+
+      // 結果をスコア順にソート
+      sortBatchResults();
+    }
+
+    // 一括分析結果カードを追加
+    function appendBatchResultCard(result) {
+      const grid = document.getElementById('batchResultsGrid');
+
+      if (!result.success) {
+        grid.innerHTML += `
+          <div style="padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px;">
+            <span style="font-weight: 600; color: #b91c1c;">${result.ticker}</span>
+            <span style="color: #dc2626; font-size: 0.85rem;">❌ ${result.error || '分析失敗'}</span>
+          </div>
+        `;
+        return;
+      }
+
+      const stageColors = { 1: '#94a3b8', 2: '#10b981', 3: '#f59e0b', 4: '#ef4444' };
+      const stageColor = stageColors[result.stage] || '#64748b';
+
+      grid.innerHTML += `
+        <div style="padding: 12px 16px; background: white; border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;" onclick="analyzeSingleStock('${result.ticker}')" class="batch-result-card">
+          <div style="min-width: 60px;">
+            <div style="font-weight: 700; font-size: 1rem;">${result.ticker}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">$${result.price.toFixed(2)}</div>
+          </div>
+          <div style="padding: 4px 10px; background: ${stageColor}20; color: ${stageColor}; border-radius: 6px; font-weight: 600; font-size: 0.8rem;">
+            Stage ${result.stage}
+          </div>
+          <div style="font-size: 0.8rem;">
+            RS: <span style="font-weight: 600; color: ${result.rsRating >= 80 ? '#10b981' : result.rsRating >= 0 ? '#64748b' : '#ef4444'};">${result.rsRating?.toFixed(1) || '-'}%</span>
+          </div>
+          <div style="font-size: 0.8rem;">
+            合格: <span style="font-weight: 600;">${result.passCount}/6</span>
+          </div>
+          ${result.vcpDetected ? '<span style="background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">📐 VCP</span>' : ''}
+          ${result.buyZone ? '<span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">✅ Buy Zone</span>' : ''}
+          <div style="margin-left: auto; font-size: 0.8rem; color: var(--text-muted);">
+            RR ${result.rrRatio}:1
+          </div>
+        </div>
+      `;
+    }
+
+    // 結果をソート
+    function sortBatchResults() {
+      const grid = document.getElementById('batchResultsGrid');
+      const successResults = batchResults.filter(r => r.success);
+
+      // スコア計算してソート
+      successResults.sort((a, b) => {
+        const scoreA = (a.passCount * 2) + (a.buyZone ? 5 : 0) + (a.vcpDetected ? 3 : 0) + (a.rsRating >= 80 ? 2 : 0);
+        const scoreB = (b.passCount * 2) + (b.buyZone ? 5 : 0) + (b.vcpDetected ? 3 : 0) + (b.rsRating >= 80 ? 2 : 0);
+        return scoreB - scoreA;
+      });
+
+      // 再レンダリング
+      grid.innerHTML = '';
+      successResults.forEach(r => appendBatchResultCard(r));
+      batchResults.filter(r => !r.success).forEach(r => appendBatchResultCard(r));
+    }
+
+    // 単一銘柄を分析
+    function analyzeSingleStock(ticker) {
+      document.getElementById('ticker').value = ticker;
+      analyzeStock();
+    }
+
+    // ページ読み込み時にウォッチリストを初期化
+    document.addEventListener('DOMContentLoaded', () => {
+      initWatchlist();
+
+      // Enterキーでウォッチリストに追加
+      document.getElementById('watchlistInput')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addToWatchlist();
+      });
+    });
   </script>
 </body>
 
