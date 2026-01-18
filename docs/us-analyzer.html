@@ -1424,16 +1424,17 @@
       // 理想的なエントリーポイント（ピボット + 0.1%）
       const idealEntry = pivotPoint * 1.001;
 
-      // ストップロス: 現在価格から7%下
-      const stopLossFromCurrent = price * 0.93;
-      const stopLossFromPivot = pivotPoint * 0.93;
+      // ストップロス: ピボットから7%下（オニールルール）
+      const stopLoss = pivotPoint * 0.93;
 
-      // 利益確定目標: 現在価格から20-25%上昇
-      const target20 = price * 1.20;
-      const target25 = price * 1.25;
+      // 利益確定目標: ピボットから20-25%上昇
+      const target20 = pivotPoint * 1.20;
+      const target25 = pivotPoint * 1.25;
 
-      // リスクリワードレシオ（現在価格ベース）
-      const risk = price - stopLossFromCurrent;
+      // リスクリワードレシオ（現在価格でエントリーした場合）
+      // リスク = 現在価格 - ストップロス
+      // リワード = 目標 - 現在価格
+      const risk = price - stopLoss;
       const reward = target20 - price;
       const riskRewardRatio = risk > 0 ? reward / risk : 0;
 
@@ -1446,10 +1447,11 @@
         pivotPoint,
         pivotType,
         idealEntry,
-        stopLossFromCurrent,
-        stopLossFromPivot,
+        stopLoss,
         target20,
         target25,
+        risk: risk.toFixed(2),
+        reward: reward.toFixed(2),
         riskRewardRatio: riskRewardRatio.toFixed(2),
         distanceFromPivot: distanceFromPivot.toFixed(2),
         isInBuyZone,
@@ -1621,11 +1623,12 @@
 
       // メトリクスグリッド
       const metricsHtml = `
-        <div class="metric-card" title="相対強度指数。過去1年間の株価パフォーマンスを市場平均と比較。高いほど強い銘柄">
+        <div class="metric-card" title="相対強度指数。過去1年間の株価パフォーマンスを市場平均と比較。+80%以上が理想（上位20%に相当）">
           <div class="label">RS Rating</div>
-          <div class="value ${analysis.rsRating >= 0 ? 'positive' : 'negative'}">
+          <div class="value ${analysis.rsRating >= 80 ? 'positive' : analysis.rsRating >= 0 ? 'neutral' : 'negative'}">
             ${analysis.rsRating ? (analysis.rsRating >= 0 ? '+' : '') + analysis.rsRating.toFixed(1) + '%' : '-'}
           </div>
+          <div style="font-size: 0.6rem; color: var(--text-muted);">${analysis.rsRating >= 80 ? '🟢 80%+ (上位20%)' : analysis.rsRating >= 50 ? '🟡 50-79%' : analysis.rsRating >= 0 ? '🟠 0-49%' : '🔴 弱い'}</div>
         </div>
         <div class="metric-card" title="現在株価が52週高値からどれだけ下にあるか。0%に近いほど高値圏">
           <div class="label">52週高値からの距離</div>
@@ -1821,22 +1824,24 @@
               <div class="label">🎯 理想エントリー</div>
               <div class="value positive" style="font-size: 1rem;">$${rm.idealEntry.toFixed(2)}</div>
             </div>
-            <div class="metric-card" title="現在の株価から-7%。損切りライン（オニールルール）">
-              <div class="label">🛑 ストップロス (-7%)</div>
-              <div class="value negative" style="font-size: 1rem;">$${rm.stopLossFromCurrent.toFixed(2)}</div>
+            <div class="metric-card" title="ピボットから-7%。損切りライン（オニールルール）">
+              <div class="label">🛑 ストップロス</div>
+              <div class="value negative" style="font-size: 1rem;">$${rm.stopLoss.toFixed(2)}</div>
+              <div style="font-size: 0.6rem; color: var(--text-muted);">リスク: $${rm.risk}</div>
             </div>
-            <div class="metric-card" title="現在の株価から+20%上昇した利益確定目標">
+            <div class="metric-card" title="ピボットから+20%上昇した利益確定目標">
               <div class="label">💰 目標 (+20%)</div>
               <div class="value positive" style="font-size: 1rem;">$${rm.target20.toFixed(2)}</div>
+              <div style="font-size: 0.6rem; color: var(--text-muted);">リワード: $${rm.reward}</div>
             </div>
-            <div class="metric-card" title="現在の株価から+25%上昇した利益確定目標">
+            <div class="metric-card" title="ピボットから+25%上昇した利益確定目標">
               <div class="label">💎 目標 (+25%)</div>
               <div class="value positive" style="font-size: 1rem;">$${rm.target25.toFixed(2)}</div>
             </div>
-            <div class="metric-card" title="期待利益÷許容損失。2:1以上が理想、3:1以上が優秀">
+            <div class="metric-card" title="(目標-現在価格)÷(現在価格-ストップロス)。現在価格でエントリーした場合のリスクリワード">
               <div class="label">📊 リスクリワード比</div>
               <div class="value" style="font-size: 1rem; color: ${rrColor};">${rm.riskRewardRatio}:1</div>
-              <div style="font-size: 0.65rem; color: var(--text-muted);">${parseFloat(rm.riskRewardRatio) >= 3 ? '🟢 優秀' : parseFloat(rm.riskRewardRatio) >= 2 ? '🟡 良好' : '🔴 要検討'}</div>
+              <div style="font-size: 0.65rem; color: var(--text-muted);">${parseFloat(rm.riskRewardRatio) >= 3 ? '🟢 優秀' : parseFloat(rm.riskRewardRatio) >= 2 ? '🟡 良好' : parseFloat(rm.riskRewardRatio) < 0 ? '⛔ 損切り以下' : '🔴 要検討'}</div>
             </div>
           </div>
         `;
@@ -2026,7 +2031,9 @@
               pan: {
                 enabled: true,
                 mode: 'x',
-                threshold: 5
+                modifierKey: null,  // 修飾キーなしでパン可能
+                threshold: 1,       // 最小移動距離
+                onPanStart: () => true,  // 常にパン開始
               },
               zoom: {
                 wheel: {
@@ -2035,9 +2042,6 @@
                 },
                 pinch: {
                   enabled: true
-                },
-                drag: {
-                  enabled: false
                 },
                 mode: 'x'
               }
@@ -2161,12 +2165,13 @@
               pan: {
                 enabled: true,
                 mode: 'x',
-                threshold: 5
+                modifierKey: null,
+                threshold: 1,
+                onPanStart: () => true,
               },
               zoom: {
                 wheel: { enabled: true, speed: 0.1 },
                 pinch: { enabled: true },
-                drag: { enabled: false },
                 mode: 'x'
               }
             }
