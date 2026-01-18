@@ -2814,7 +2814,7 @@
       }
     }
 
-    // 24時間経過していたら自動分析
+    // 前回分析日と今日が違う日なら自動分析
     async function checkAndRunAutoAnalysis() {
       const saved = localStorage.getItem('batchResults');
 
@@ -2829,14 +2829,17 @@
         const data = JSON.parse(saved);
         const lastTime = new Date(data.timestamp);
         const now = new Date();
-        const hoursSinceLast = (now - lastTime) / 1000 / 60 / 60;
 
-        // 24時間以上経過していたら実行
-        if (hoursSinceLast >= 24) {
-          console.log(`${Math.round(hoursSinceLast)} hours since last analysis, running auto-analysis...`);
+        // 日付部分だけを比較（年月日）
+        const lastDate = lastTime.toDateString();
+        const todayDate = now.toDateString();
+
+        // 前回分析日と今日が違う日なら実行
+        if (lastDate !== todayDate) {
+          console.log(`Last analysis was on ${lastDate}, today is ${todayDate}. Running auto-analysis...`);
           runAutoAnalysis();
         } else {
-          console.log(`Only ${Math.round(hoursSinceLast)} hours since last analysis, skipping.`);
+          console.log(`Already analyzed today (${todayDate}), skipping.`);
         }
       } catch (e) {
         console.log('Error checking last analysis time:', e);
