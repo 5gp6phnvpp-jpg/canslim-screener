@@ -2576,7 +2576,7 @@
             continue;
           }
 
-          const analysis = performAnalysis(quotes);
+          const analysis = performAnalysis(ticker, quotes);
           if (!analysis || !analysis.current) {
             batchResults.push({ ticker, success: false, error: '分析に失敗（データ不足）' });
             appendBatchResultCard({ ticker, success: false, error: '分析失敗' });
