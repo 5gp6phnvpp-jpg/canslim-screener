@@ -709,18 +709,18 @@
             </button>
           </div>
 
-          <!-- スケジュール分析 -->
+          <!-- 自動分析設定 -->
           <div style="margin-top: 16px; padding: 12px; background: #fef3c7; border-radius: 10px;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <span style="font-size: 0.85rem; font-weight: 600; color: #92400e;">⏰ 自動分析スケジュール</span>
+              <span style="font-size: 0.85rem; font-weight: 600; color: #92400e;">🔄 自動分析（ページ開封時）</span>
               <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem;">
                 <input type="checkbox" id="autoAnalyzeEnabled" onchange="toggleAutoAnalyze()">
                 <span>有効</span>
               </label>
-              <span id="nextAnalysisTime" style="font-size: 0.75rem; color: #92400e; margin-left: auto;">次回: 未設定</span>
+              <span id="lastAnalysisTime" style="font-size: 0.75rem; color: #92400e; margin-left: auto;">前回: なし</span>
             </div>
             <div style="margin-top: 8px; font-size: 0.75rem; color: #78350f;">
-              💡 米国市場閉場後（日本時間 6:00 AM）に自動分析。ブラウザを開いたままにしてください。
+              💡 有効にすると、ページを開いた時に前回分析から24時間以上経過していれば自動分析開始
             </div>
           </div>
 
@@ -2744,20 +2744,23 @@
     });
 
     // ========================================
-    // 自動分析スケジュール機能
+    // 自動分析機能（ページ開封時）
     // ========================================
 
-    let autoAnalyzeTimer = null;
-
-    // 自動分析スケジュールを初期化
+    // 自動分析を初期化
     function initAutoAnalyzeSchedule() {
       const enabled = localStorage.getItem('autoAnalyzeEnabled') === 'true';
       const checkbox = document.getElementById('autoAnalyzeEnabled');
       if (checkbox) {
         checkbox.checked = enabled;
-        if (enabled) {
-          scheduleNextAnalysis();
-        }
+      }
+
+      // 前回分析時間を表示
+      updateLastAnalysisDisplay();
+
+      // 自動分析が有効なら、24時間経過をチェック
+      if (enabled && watchlist.length > 0) {
+        checkAndRunAutoAnalysis();
       }
     }
 
@@ -2775,52 +2778,74 @@
           localStorage.setItem('autoAnalyzeEnabled', 'false');
           return;
         }
-        scheduleNextAnalysis();
-      } else {
-        cancelScheduledAnalysis();
+        // 今すぐチェック
+        checkAndRunAutoAnalysis();
       }
     }
 
-    // 次回分析をスケジュール
-    function scheduleNextAnalysis() {
-      cancelScheduledAnalysis();
+    // 前回分析時間を表示
+    function updateLastAnalysisDisplay() {
+      const saved = localStorage.getItem('batchResults');
+      const displayEl = document.getElementById('lastAnalysisTime');
+      if (!displayEl) return;
 
-      // 米国市場閉場時間（日本時間6:00 AM）を計算
-      const now = new Date();
-      let nextRun = new Date();
-      nextRun.setHours(6, 0, 0, 0); // 日本時間 6:00 AM
-
-      // 過ぎていたら翌日
-      if (nextRun <= now) {
-        nextRun.setDate(nextRun.getDate() + 1);
+      if (!saved) {
+        displayEl.textContent = '前回: なし';
+        return;
       }
 
-      const msUntilRun = nextRun - now;
+      try {
+        const data = JSON.parse(saved);
+        const date = new Date(data.timestamp);
+        const now = new Date();
+        const hoursAgo = Math.round((now - date) / 1000 / 60 / 60);
 
-      // タイマー設定
-      autoAnalyzeTimer = setTimeout(() => {
-        runScheduledAnalysis();
-      }, msUntilRun);
-
-      // 次回実行時間を表示
-      const timeStr = `${nextRun.getMonth() + 1}/${nextRun.getDate()} ${nextRun.getHours()}:00`;
-      document.getElementById('nextAnalysisTime').textContent = `次回: ${timeStr}`;
-
-      console.log(`Scheduled analysis at ${timeStr} (in ${Math.round(msUntilRun / 1000 / 60)} minutes)`);
-    }
-
-    // スケジュールをキャンセル
-    function cancelScheduledAnalysis() {
-      if (autoAnalyzeTimer) {
-        clearTimeout(autoAnalyzeTimer);
-        autoAnalyzeTimer = null;
+        if (hoursAgo < 1) {
+          displayEl.textContent = `前回: ${Math.round((now - date) / 1000 / 60)}分前`;
+        } else if (hoursAgo < 24) {
+          displayEl.textContent = `前回: ${hoursAgo}時間前`;
+        } else {
+          const days = Math.round(hoursAgo / 24);
+          displayEl.textContent = `前回: ${days}日前`;
+          displayEl.style.color = '#dc2626'; // 赤色で警告
+        }
+      } catch (e) {
+        displayEl.textContent = '前回: 不明';
       }
-      document.getElementById('nextAnalysisTime').textContent = '次回: 未設定';
     }
 
-    // スケジュール分析を実行
-    async function runScheduledAnalysis() {
-      console.log('Running scheduled analysis...');
+    // 24時間経過していたら自動分析
+    async function checkAndRunAutoAnalysis() {
+      const saved = localStorage.getItem('batchResults');
+
+      // 保存データがない場合は実行
+      if (!saved) {
+        console.log('No previous results, running auto-analysis...');
+        runAutoAnalysis();
+        return;
+      }
+
+      try {
+        const data = JSON.parse(saved);
+        const lastTime = new Date(data.timestamp);
+        const now = new Date();
+        const hoursSinceLast = (now - lastTime) / 1000 / 60 / 60;
+
+        // 24時間以上経過していたら実行
+        if (hoursSinceLast >= 24) {
+          console.log(`${Math.round(hoursSinceLast)} hours since last analysis, running auto-analysis...`);
+          runAutoAnalysis();
+        } else {
+          console.log(`Only ${Math.round(hoursSinceLast)} hours since last analysis, skipping.`);
+        }
+      } catch (e) {
+        console.log('Error checking last analysis time:', e);
+      }
+    }
+
+    // 自動分析を実行
+    async function runAutoAnalysis() {
+      console.log('Running auto-analysis...');
 
       // ウォッチリストセクションを開く
       const section = document.getElementById('watchlistSection');
@@ -2829,14 +2854,13 @@
       // 分析実行
       await analyzeAllWatchlist();
 
-      // 翌日の分析をスケジュール
-      scheduleNextAnalysis();
+      // 表示更新
+      updateLastAnalysisDisplay();
 
       // 通知（ブラウザ通知が許可されている場合）
       if (Notification.permission === 'granted') {
         new Notification('📊 ウォッチリスト分析完了', {
-          body: `${batchResults.filter(r => r.success).length}銘柄の分析が完了しました`,
-          icon: '📊'
+          body: `${batchResults.filter(r => r.success).length}銘柄の分析が完了しました`
         });
       }
     }
