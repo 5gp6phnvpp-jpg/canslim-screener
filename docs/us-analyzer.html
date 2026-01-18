@@ -721,7 +721,7 @@
           </div>
 
           <div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">
-            💡 ヒント: カンマ区切りで複数銘柄を一度に追加可能 | APIレート制限を考慮し15秒間隔で分析
+            💡 ヒント: カンマ区切りで複数銘柄を追加可能 | 12秒間隔で分析 | 結果は自動保存されます
           </div>
         </div>
       </details>
@@ -2573,16 +2573,19 @@
           appendBatchResultCard({ ticker, success: false, error: error.message });
         }
 
-        // APIレート制限を考慮（15秒待機）
+        // APIレート制限を考慮（12秒待機 - 5リクエスト/分）
         if (i < watchlist.length - 1) {
-          statusSpan.textContent = `次の分析まで15秒待機中...`;
-          await new Promise(resolve => setTimeout(resolve, 15000));
+          statusSpan.textContent = `次の分析まで12秒待機中...`;
+          await new Promise(resolve => setTimeout(resolve, 12000));
         }
       }
 
       statusSpan.textContent = `✅ 完了！ ${batchResults.filter(r => r.success).length}/${watchlist.length} 銘柄分析成功`;
       btn.disabled = false;
       btn.textContent = '🚀 一括分析開始';
+
+      // 結果を保存
+      saveBatchResults();
 
       // 結果をスコア順にソート
       sortBatchResults();
@@ -2653,13 +2656,72 @@
       analyzeStock();
     }
 
+    // 結果を保存
+    function saveBatchResults() {
+      const saveData = {
+        timestamp: new Date().toISOString(),
+        results: batchResults
+      };
+      localStorage.setItem('batchResults', JSON.stringify(saveData));
+    }
+
+    // 保存済み結果を読み込み
+    function loadSavedResults() {
+      const saved = localStorage.getItem('batchResults');
+      if (!saved) return;
+
+      try {
+        const data = JSON.parse(saved);
+        batchResults = data.results || [];
+
+        if (batchResults.length > 0) {
+          const resultsSection = document.getElementById('batchResultsSection');
+          const resultsGrid = document.getElementById('batchResultsGrid');
+
+          resultsSection.style.display = 'block';
+          resultsGrid.innerHTML = '';
+
+          // 保存日時を表示
+          const date = new Date(data.timestamp);
+          const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+          resultsGrid.innerHTML = `
+            <div style="padding: 8px 12px; background: #eff6ff; border-radius: 8px; font-size: 0.8rem; color: #1d4ed8; margin-bottom: 8px;">
+              📅 保存日時: ${dateStr} | ${batchResults.filter(r => r.success).length}/${batchResults.length} 銘柄
+              <button onclick="clearSavedResults()" style="float: right; padding: 2px 8px; font-size: 0.7rem; background: white; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer;">クリア</button>
+            </div>
+          `;
+
+          sortBatchResults();
+        }
+      } catch (e) {
+        console.log('Failed to load saved results:', e);
+      }
+    }
+
+    // 保存済み結果をクリア
+    function clearSavedResults() {
+      localStorage.removeItem('batchResults');
+      batchResults = [];
+      document.getElementById('batchResultsSection').style.display = 'none';
+      document.getElementById('batchResultsGrid').innerHTML = '';
+    }
+
     // ページ読み込み時にウォッチリストを初期化
     document.addEventListener('DOMContentLoaded', () => {
       initWatchlist();
+      loadSavedResults();
 
       // Enterキーでウォッチリストに追加
       document.getElementById('watchlistInput')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addToWatchlist();
+      });
+
+      // APIキー入力時に自動保存
+      document.getElementById('alphaVantageKey')?.addEventListener('change', (e) => {
+        if (e.target.value.trim()) {
+          localStorage.setItem('alphaVantageKey', e.target.value.trim());
+        }
       });
     });
   </script>
