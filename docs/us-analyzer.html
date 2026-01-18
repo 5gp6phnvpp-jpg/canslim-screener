@@ -1948,23 +1948,34 @@
       }));
 
       priceChartInstance = new Chart(ctx, {
-        type: 'line',
+        type: 'candlestick',
         data: {
           labels: labels,
           datasets: [
             {
-              label: '株価',
-              data: chartData.map(q => q.close),
-              borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              borderWidth: 2,
-              fill: true,
-              tension: 0.1,
-              pointRadius: 0,
+              label: 'OHLC',
+              data: chartData.map((q, i) => ({
+                x: i,
+                o: q.open,
+                h: q.high,
+                l: q.low,
+                c: q.close
+              })),
+              color: {
+                up: 'rgba(16, 185, 129, 1)',
+                down: 'rgba(239, 68, 68, 1)',
+                unchanged: 'rgba(100, 116, 139, 1)'
+              },
+              borderColor: {
+                up: 'rgba(16, 185, 129, 1)',
+                down: 'rgba(239, 68, 68, 1)',
+                unchanged: 'rgba(100, 116, 139, 1)'
+              },
               order: 0
             },
             {
               label: '10 EMA',
+              type: 'line',
               data: ema10,
               borderColor: '#f59e0b',
               borderWidth: 1.5,
@@ -1975,6 +1986,7 @@
             },
             {
               label: '21 EMA',
+              type: 'line',
               data: ema21,
               borderColor: '#10b981',
               borderWidth: 1.5,
@@ -1985,6 +1997,7 @@
             },
             {
               label: '50 EMA',
+              type: 'line',
               data: ema50,
               borderColor: '#8b5cf6',
               borderWidth: 1.5,
@@ -1995,6 +2008,7 @@
             },
             {
               label: '200 EMA',
+              type: 'line',
               data: ema200,
               borderColor: '#ef4444',
               borderWidth: 1.5,
@@ -2031,9 +2045,13 @@
               pan: {
                 enabled: true,
                 mode: 'x',
-                modifierKey: null,  // 修飾キーなしでパン可能
-                threshold: 1,       // 最小移動距離
-                onPanStart: () => true,  // 常にパン開始
+                modifierKey: null,
+                threshold: 1,
+                onPanStart: () => true,
+                onPanComplete: function ({ chart }) {
+                  // 出来高チャートにも同じパンを適用
+                  syncChartZoom(chart);
+                }
               },
               zoom: {
                 wheel: {
@@ -2043,7 +2061,11 @@
                 pinch: {
                   enabled: true
                 },
-                mode: 'x'
+                mode: 'x',
+                onZoomComplete: function ({ chart }) {
+                  // 出来高チャートにも同じズームを適用
+                  syncChartZoom(chart);
+                }
               }
             }
           },
@@ -2203,6 +2225,25 @@
       }
       if (volumeChartInstance) {
         volumeChartInstance.resetZoom();
+      }
+    }
+
+    // 株価チャートと出来高チャートのズーム/パンを同期
+    function syncChartZoom(priceChart) {
+      if (!volumeChartInstance || !priceChart) return;
+
+      try {
+        // 株価チャートのX軸範囲を取得
+        const xScale = priceChart.scales.x;
+        const min = xScale.min;
+        const max = xScale.max;
+
+        // 出来高チャートに同じ範囲を適用
+        volumeChartInstance.options.scales.x.min = min;
+        volumeChartInstance.options.scales.x.max = max;
+        volumeChartInstance.update('none');
+      } catch (e) {
+        console.log('Sync error:', e);
       }
     }
   </script>
