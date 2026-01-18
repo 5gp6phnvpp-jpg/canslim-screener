@@ -709,6 +709,21 @@
             </button>
           </div>
 
+          <!-- スケジュール分析 -->
+          <div style="margin-top: 16px; padding: 12px; background: #fef3c7; border-radius: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 0.85rem; font-weight: 600; color: #92400e;">⏰ 自動分析スケジュール</span>
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem;">
+                <input type="checkbox" id="autoAnalyzeEnabled" onchange="toggleAutoAnalyze()">
+                <span>有効</span>
+              </label>
+              <span id="nextAnalysisTime" style="font-size: 0.75rem; color: #92400e; margin-left: auto;">次回: 未設定</span>
+            </div>
+            <div style="margin-top: 8px; font-size: 0.75rem; color: #78350f;">
+              💡 米国市場閉場後（日本時間 6:00 AM）に自動分析。ブラウザを開いたままにしてください。
+            </div>
+          </div>
+
           <div id="batchProgress" style="display: none; margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
               <span id="batchStatus">分析中...</span>
@@ -2723,7 +2738,113 @@
           localStorage.setItem('alphaVantageKey', e.target.value.trim());
         }
       });
+
+      // 自動分析スケジュールを復元
+      initAutoAnalyzeSchedule();
     });
+
+    // ========================================
+    // 自動分析スケジュール機能
+    // ========================================
+
+    let autoAnalyzeTimer = null;
+
+    // 自動分析スケジュールを初期化
+    function initAutoAnalyzeSchedule() {
+      const enabled = localStorage.getItem('autoAnalyzeEnabled') === 'true';
+      const checkbox = document.getElementById('autoAnalyzeEnabled');
+      if (checkbox) {
+        checkbox.checked = enabled;
+        if (enabled) {
+          scheduleNextAnalysis();
+        }
+      }
+    }
+
+    // 自動分析のオン/オフ切り替え
+    function toggleAutoAnalyze() {
+      const checkbox = document.getElementById('autoAnalyzeEnabled');
+      const enabled = checkbox.checked;
+
+      localStorage.setItem('autoAnalyzeEnabled', enabled);
+
+      if (enabled) {
+        if (watchlist.length === 0) {
+          alert('先にウォッチリストに銘柄を追加してください');
+          checkbox.checked = false;
+          localStorage.setItem('autoAnalyzeEnabled', 'false');
+          return;
+        }
+        scheduleNextAnalysis();
+      } else {
+        cancelScheduledAnalysis();
+      }
+    }
+
+    // 次回分析をスケジュール
+    function scheduleNextAnalysis() {
+      cancelScheduledAnalysis();
+
+      // 米国市場閉場時間（日本時間6:00 AM）を計算
+      const now = new Date();
+      let nextRun = new Date();
+      nextRun.setHours(6, 0, 0, 0); // 日本時間 6:00 AM
+
+      // 過ぎていたら翌日
+      if (nextRun <= now) {
+        nextRun.setDate(nextRun.getDate() + 1);
+      }
+
+      const msUntilRun = nextRun - now;
+
+      // タイマー設定
+      autoAnalyzeTimer = setTimeout(() => {
+        runScheduledAnalysis();
+      }, msUntilRun);
+
+      // 次回実行時間を表示
+      const timeStr = `${nextRun.getMonth() + 1}/${nextRun.getDate()} ${nextRun.getHours()}:00`;
+      document.getElementById('nextAnalysisTime').textContent = `次回: ${timeStr}`;
+
+      console.log(`Scheduled analysis at ${timeStr} (in ${Math.round(msUntilRun / 1000 / 60)} minutes)`);
+    }
+
+    // スケジュールをキャンセル
+    function cancelScheduledAnalysis() {
+      if (autoAnalyzeTimer) {
+        clearTimeout(autoAnalyzeTimer);
+        autoAnalyzeTimer = null;
+      }
+      document.getElementById('nextAnalysisTime').textContent = '次回: 未設定';
+    }
+
+    // スケジュール分析を実行
+    async function runScheduledAnalysis() {
+      console.log('Running scheduled analysis...');
+
+      // ウォッチリストセクションを開く
+      const section = document.getElementById('watchlistSection');
+      if (section) section.open = true;
+
+      // 分析実行
+      await analyzeAllWatchlist();
+
+      // 翌日の分析をスケジュール
+      scheduleNextAnalysis();
+
+      // 通知（ブラウザ通知が許可されている場合）
+      if (Notification.permission === 'granted') {
+        new Notification('📊 ウォッチリスト分析完了', {
+          body: `${batchResults.filter(r => r.success).length}銘柄の分析が完了しました`,
+          icon: '📊'
+        });
+      }
+    }
+
+    // 通知許可をリクエスト
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   </script>
 </body>
 
