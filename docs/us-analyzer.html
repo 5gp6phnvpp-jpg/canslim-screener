@@ -741,7 +741,7 @@
           </div>
 
           <div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">
-            💡 ヒント: カンマ区切りで複数銘柄を追加可能 | 12秒間隔で分析 | 結果は自動保存されます
+            💡 ヒント: カンマ区切りで複数銘柄を追加可能 | 20秒間隔で分析 | 結果は自動保存されます
           </div>
         </div>
       </details>
@@ -2605,10 +2605,10 @@
           appendBatchResultCard({ ticker, success: false, error: error.message || 'エラー' });
         }
 
-        // APIレート制限を考慮（12秒待機 - 5リクエスト/分）
+        // APIレート制限を考慮（20秒待機）
         if (i < watchlist.length - 1) {
-          statusSpan.textContent = `次の分析まで12秒待機中...`;
-          await new Promise(resolve => setTimeout(resolve, 12000));
+          statusSpan.textContent = `次の分析まで20秒待機中...`;
+          await new Promise(resolve => setTimeout(resolve, 20000));
         }
       }
 
