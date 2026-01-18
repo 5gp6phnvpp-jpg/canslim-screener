@@ -1175,8 +1175,8 @@
       // トレンドテンプレート（Minervini）+ 4ステージ分類
       const trendTemplate = checkTrendTemplate(quotes, ma50, ma150, ma200, rsRating);
 
-      // リスク管理ルール
-      const riskManagement = calculateRiskManagement(quotes, { ma50 });
+      // リスク管理ルール（ベースパターン連動）
+      const riskManagement = calculateRiskManagement(quotes, basePatterns);
 
       return {
         current,
@@ -1375,48 +1375,87 @@
     // リスク管理ルール計算
     // ========================================
 
-    function calculateRiskManagement(quotes, analysis) {
+    function calculateRiskManagement(quotes, basePatterns) {
       const current = quotes[quotes.length - 1];
       const price = current.close;
 
-      // ピボットポイント（直近の高値）
-      const recent20 = quotes.slice(-20);
-      const pivotPoint = Math.max(...recent20.map(q => q.high));
+      // ベースパターンに基づくピボットポイント計算
+      let pivotPoint;
+      let pivotType = '直近ベース高値';
+
+      // VCPの場合: 最終収縮の高値
+      const last10 = quotes.slice(-10);
+      const vcpPivot = Math.max(...last10.map(q => q.high));
+
+      // フラットベース: 5週間の高値
+      const last25 = quotes.slice(-25);
+      const flatBasePivot = Math.max(...last25.map(q => q.high));
+
+      // ダブルボトム: 中央ピーク
+      const last50 = quotes.slice(-50);
+      const doubleBottomPivot = Math.max(...last50.map(q => q.high));
+
+      // 検出されたパターンに応じてピボットを選択
+      if (basePatterns && basePatterns.patterns) {
+        const patternNames = basePatterns.patterns.map(p => p.name);
+
+        if (patternNames.includes('3週間タイト')) {
+          pivotPoint = vcpPivot;
+          pivotType = 'VCP/タイトブレイク';
+        } else if (patternNames.includes('フラットベース')) {
+          pivotPoint = flatBasePivot;
+          pivotType = 'フラットベースブレイク';
+        } else if (patternNames.includes('ダブルボトム')) {
+          pivotPoint = doubleBottomPivot;
+          pivotType = 'ダブルボトム中央ピーク';
+        } else if (patternNames.includes('カップウィズハンドル')) {
+          // ハンドル（直近10日）の高値
+          pivotPoint = vcpPivot;
+          pivotType = 'カップハンドル高値';
+        } else {
+          // デフォルト: 直近25日の高値
+          pivotPoint = flatBasePivot;
+          pivotType = '直近ベース高値';
+        }
+      } else {
+        pivotPoint = flatBasePivot;
+      }
 
       // 理想的なエントリーポイント（ピボット + 0.1%）
       const idealEntry = pivotPoint * 1.001;
 
-      // ストップロス（ピボットから7-8%下）
-      const stopLoss7 = pivotPoint * 0.93;
-      const stopLoss8 = pivotPoint * 0.92;
+      // ストップロス: 現在価格から7%下
+      const stopLossFromCurrent = price * 0.93;
+      const stopLossFromPivot = pivotPoint * 0.93;
 
-      // 利益確定目標（20-25%上昇）
-      const target20 = idealEntry * 1.20;
-      const target25 = idealEntry * 1.25;
+      // 利益確定目標: 現在価格から20-25%上昇
+      const target20 = price * 1.20;
+      const target25 = price * 1.25;
 
-      // リスクリワードレシオ
-      const risk = idealEntry - stopLoss7;
-      const reward = target20 - idealEntry;
-      const riskRewardRatio = reward / risk;
+      // リスクリワードレシオ（現在価格ベース）
+      const risk = price - stopLossFromCurrent;
+      const reward = target20 - price;
+      const riskRewardRatio = risk > 0 ? reward / risk : 0;
 
-      // 現在価格がエントリー圏内か
+      // 現在価格がエントリー圏内か（ピボットから+5%以内 = オニールのバイゾーン）
       const distanceFromPivot = ((price - pivotPoint) / pivotPoint) * 100;
       const isInBuyZone = distanceFromPivot >= -2 && distanceFromPivot <= 5;
       const isExtended = distanceFromPivot > 5;
 
       return {
         pivotPoint,
+        pivotType,
         idealEntry,
-        stopLoss7,
-        stopLoss8,
+        stopLossFromCurrent,
+        stopLossFromPivot,
         target20,
         target25,
         riskRewardRatio: riskRewardRatio.toFixed(2),
         distanceFromPivot: distanceFromPivot.toFixed(2),
         isInBuyZone,
         isExtended,
-        buyZoneStatus: isExtended ? '⚠️ 拡張中（エントリー非推奨）' :
-          isInBuyZone ? '✅ バイゾーン内' : '⏳ 待機中'
+        buyZoneStatus: isExtended ? '⚠️ 拡張中（+5%超、エントリー非推奨）' :
+          isInBuyZone ? '✅ バイゾーン内（ピボット〜+5%）' : '⏳ 待機中'
       };
     }
 
@@ -1582,37 +1621,37 @@
 
       // メトリクスグリッド
       const metricsHtml = `
-        <div class="metric-card">
+        <div class="metric-card" title="相対強度指数。過去1年間の株価パフォーマンスを市場平均と比較。高いほど強い銘柄">
           <div class="label">RS Rating</div>
           <div class="value ${analysis.rsRating >= 0 ? 'positive' : 'negative'}">
             ${analysis.rsRating ? (analysis.rsRating >= 0 ? '+' : '') + analysis.rsRating.toFixed(1) + '%' : '-'}
           </div>
         </div>
-        <div class="metric-card">
+        <div class="metric-card" title="現在株価が52週高値からどれだけ下にあるか。0%に近いほど高値圏">
           <div class="label">52週高値からの距離</div>
           <div class="value ${parseFloat(analysis.newHighs.distanceFromHigh) <= 10 ? 'positive' : 'neutral'}">
             -${analysis.newHighs.distanceFromHigh}%
           </div>
         </div>
-        <div class="metric-card">
+        <div class="metric-card" title="現在株価が52週安値からどれだけ上昇したか。強い銘柄は30%以上上昇">
           <div class="label">52週安値からの上昇</div>
           <div class="value positive">
             +${analysis.newHighs.distanceFromLow}%
           </div>
         </div>
-        <div class="metric-card">
+        <div class="metric-card" title="当日の出来高が50日平均と比較してどれくらいか。150%以上なら機関投資家の参入">
           <div class="label">出来高（対50日平均）</div>
           <div class="value ${parseInt(analysis.volumeAnalysis.volumeRatio) >= 150 ? 'positive' : 'neutral'}">
             ${analysis.volumeAnalysis.volumeRatio}%
           </div>
         </div>
-        <div class="metric-card">
+        <div class="metric-card" title="50日移動平均線。株価がこの上にあれば短期的に上昇トレンド">
           <div class="label">50日MA</div>
           <div class="value ${current.close > analysis.ma50 ? 'positive' : 'negative'}">
             $${analysis.ma50?.toFixed(2) || '-'}
           </div>
         </div>
-        <div class="metric-card">
+        <div class="metric-card" title="200日移動平均線。株価がこの上にあれば長期的に上昇トレンド。ミネルヴィニの重要条件">
           <div class="label">200日MA</div>
           <div class="value ${current.close > analysis.ma200 ? 'positive' : 'negative'}">
             $${analysis.ma200?.toFixed(2) || '-'}
@@ -1764,6 +1803,8 @@
       // リスク管理表示
       if (analysis.riskManagement) {
         const rm = analysis.riskManagement;
+        const rrColor = parseFloat(rm.riskRewardRatio) >= 3 ? '#10b981' :
+          parseFloat(rm.riskRewardRatio) >= 2 ? '#f59e0b' : '#ef4444';
         const riskHtml = `
           <div style="margin-bottom: 16px; padding: 16px; background: ${rm.isInBuyZone ? '#dcfce7' : rm.isExtended ? '#fef3c7' : '#f1f5f9'}; border-radius: 12px; text-align: center;">
             <span style="font-size: 1.2rem; font-weight: 600;">${rm.buyZoneStatus}</span>
@@ -1772,29 +1813,30 @@
             </div>
           </div>
           <div class="metrics-grid">
-            <div class="metric-card">
-              <div class="label">📍 ピボットポイント</div>
+            <div class="metric-card" title="ベースパターンに基づく買いポイント。この価格を上回ってブレイクアウトした時がエントリーポイント">
+              <div class="label">📍 ピボット (${rm.pivotType})</div>
               <div class="value" style="font-size: 1rem;">$${rm.pivotPoint.toFixed(2)}</div>
             </div>
-            <div class="metric-card">
+            <div class="metric-card" title="ピボットポイント+0.1%。ブレイクアウト直後の理想的なエントリー価格">
               <div class="label">🎯 理想エントリー</div>
               <div class="value positive" style="font-size: 1rem;">$${rm.idealEntry.toFixed(2)}</div>
             </div>
-            <div class="metric-card">
-              <div class="label">🛑 ストップロス (7%)</div>
-              <div class="value negative" style="font-size: 1rem;">$${rm.stopLoss7.toFixed(2)}</div>
+            <div class="metric-card" title="現在の株価から-7%。損切りライン（オニールルール）">
+              <div class="label">🛑 ストップロス (-7%)</div>
+              <div class="value negative" style="font-size: 1rem;">$${rm.stopLossFromCurrent.toFixed(2)}</div>
             </div>
-            <div class="metric-card">
-              <div class="label">💰 利益目標 (20%)</div>
+            <div class="metric-card" title="現在の株価から+20%上昇した利益確定目標">
+              <div class="label">💰 目標 (+20%)</div>
               <div class="value positive" style="font-size: 1rem;">$${rm.target20.toFixed(2)}</div>
             </div>
-            <div class="metric-card">
-              <div class="label">💎 利益目標 (25%)</div>
+            <div class="metric-card" title="現在の株価から+25%上昇した利益確定目標">
+              <div class="label">💎 目標 (+25%)</div>
               <div class="value positive" style="font-size: 1rem;">$${rm.target25.toFixed(2)}</div>
             </div>
-            <div class="metric-card">
+            <div class="metric-card" title="期待利益÷許容損失。2:1以上が理想、3:1以上が優秀">
               <div class="label">📊 リスクリワード比</div>
-              <div class="value" style="font-size: 1rem;">${rm.riskRewardRatio}:1</div>
+              <div class="value" style="font-size: 1rem; color: ${rrColor};">${rm.riskRewardRatio}:1</div>
+              <div style="font-size: 0.65rem; color: var(--text-muted);">${parseFloat(rm.riskRewardRatio) >= 3 ? '🟢 優秀' : parseFloat(rm.riskRewardRatio) >= 2 ? '🟡 良好' : '🔴 要検討'}</div>
             </div>
           </div>
         `;
