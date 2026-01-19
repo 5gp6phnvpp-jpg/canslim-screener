@@ -2711,10 +2711,13 @@
       batchResults.filter(r => !r.success).forEach(r => appendBatchResultCard(r));
     }
 
-    // 単一銘柄を分析
+    // 単一銘柄を分析（一括分析結果からクリック時）
     function analyzeSingleStock(ticker) {
       document.getElementById('ticker').value = ticker;
-      analyzeStock();
+      const apiKey = document.getElementById('alphaVantageKey').value || localStorage.getItem('alphaVantageKey');
+      analyzeStock(ticker, apiKey);
+      // 結果セクションにスクロール
+      document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // 結果を保存
