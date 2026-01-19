@@ -2569,12 +2569,25 @@
 
         try {
           // データ取得
-          const quotes = await fetchStockData(ticker, apiKey);
+          console.log(`[Batch] Fetching ${ticker}...`);
+          let quotes;
+          try {
+            quotes = await fetchStockData(ticker, apiKey);
+          } catch (fetchError) {
+            console.error(`[Batch] Fetch error for ${ticker}:`, fetchError);
+            batchResults.push({ ticker, success: false, error: fetchError.message || 'データ取得エラー' });
+            appendBatchResultCard({ ticker, success: false, error: fetchError.message || 'データ取得エラー' });
+            continue;
+          }
+
           if (!quotes || !Array.isArray(quotes) || quotes.length === 0) {
-            batchResults.push({ ticker, success: false, error: 'データ取得失敗（APIレート制限の可能性）' });
+            console.log(`[Batch] No data for ${ticker}`);
+            batchResults.push({ ticker, success: false, error: 'データが空です' });
             appendBatchResultCard({ ticker, success: false, error: 'データ取得失敗' });
             continue;
           }
+
+          console.log(`[Batch] Got ${quotes.length} quotes for ${ticker}`);
 
           const analysis = performAnalysis(ticker, quotes);
           if (!analysis || !analysis.current) {
