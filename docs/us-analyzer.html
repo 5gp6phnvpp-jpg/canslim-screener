@@ -1203,31 +1203,46 @@
 
     // Yahoo Finance（CORSプロキシ経由） - フォールバック用
     async function fetchFromYahooProxy(ticker) {
-      // 注意: 公開CORSプロキシは本番環境では推奨されません
-      const proxy = 'https://api.allorigins.win/raw?url=';
       const endDate = Math.floor(Date.now() / 1000);
       const startDate = endDate - (365 * 2 * 24 * 60 * 60); // 2年分
       const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${startDate}&period2=${endDate}&interval=1d`;
 
-      const response = await fetch(proxy + encodeURIComponent(yahooUrl));
-      const json = await response.json();
+      // 複数のCORSプロキシを試す
+      const proxies = [
+        'https://corsproxy.io/?',
+        'https://api.allorigins.win/raw?url=',
+        'https://cors-anywhere.herokuapp.com/'
+      ];
 
-      const result = json.chart?.result?.[0];
-      if (!result) throw new Error('データが見つかりません');
+      for (const proxy of proxies) {
+        try {
+          const response = await fetch(proxy + encodeURIComponent(yahooUrl));
+          if (!response.ok) continue;
+          const json = await response.json();
 
-      const timestamps = result.timestamp;
-      const ohlcv = result.indicators.quote[0];
+          const result = json.chart?.result?.[0];
+          if (!result) throw new Error('データが見つかりません');
 
-      const quotes = timestamps.map((ts, i) => ({
-        date: new Date(ts * 1000),
-        open: ohlcv.open[i],
-        high: ohlcv.high[i],
-        low: ohlcv.low[i],
-        close: ohlcv.close[i],
-        volume: ohlcv.volume[i]
-      })).filter(q => q.close !== null);
+          const timestamps = result.timestamp;
+          const ohlcv = result.indicators.quote[0];
 
-      return quotes;
+          const quotes = timestamps.map((ts, i) => ({
+            date: new Date(ts * 1000),
+            open: ohlcv.open[i],
+            high: ohlcv.high[i],
+            low: ohlcv.low[i],
+            close: ohlcv.close[i],
+            volume: ohlcv.volume[i]
+          })).filter(q => q.close !== null);
+
+          return quotes;
+        } catch (e) {
+          console.log(`Proxy ${proxy} failed:`, e.message);
+          continue;
+        }
+      }
+
+      throw new Error('全てのプロキシが失敗しました');
     }
 
     // ========================================
