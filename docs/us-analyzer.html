@@ -2161,11 +2161,17 @@
       const ema50All = calculateEMA(quotes, 50);
       const ema200All = calculateEMA(quotes, 200);
 
-      // 表示範囲のデータを抽出
-      const ema10 = ema10All.slice(-chartDays);
-      const ema21 = ema21All.slice(-chartDays);
-      const ema50 = ema50All.slice(-chartDays);
-      const ema200 = ema200All.slice(-chartDays);
+      // 表示範囲のデータを抽出し、{x, y}形式に変換
+      const ema10Raw = ema10All.slice(-chartDays);
+      const ema21Raw = ema21All.slice(-chartDays);
+      const ema50Raw = ema50All.slice(-chartDays);
+      const ema200Raw = ema200All.slice(-chartDays);
+
+      // category軸用に{x: index, y: value}形式に変換
+      const ema10 = ema10Raw.map((v, i) => v !== null ? { x: i, y: v } : null).filter(v => v !== null);
+      const ema21 = ema21Raw.map((v, i) => v !== null ? { x: i, y: v } : null).filter(v => v !== null);
+      const ema50 = ema50Raw.map((v, i) => v !== null ? { x: i, y: v } : null).filter(v => v !== null);
+      const ema200 = ema200Raw.map((v, i) => v !== null ? { x: i, y: v } : null).filter(v => v !== null);
 
       const labels = chartData.map(q => {
         const d = new Date(q.date);
