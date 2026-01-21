@@ -988,16 +988,74 @@
     // ========================================
 
     /**
+     * 米国オプションSQ日（第3金曜日）を計算
+     * @param {number} year - 年
+     * @returns {Date[]} SQ日の配列
+     */
+    function getUSOptionsExpirationDates(year) {
+      const sqDates = [];
+      for (let month = 1; month <= 12; month++) {
+        // 毎月第3金曜日を計算
+        const firstDay = new Date(year, month - 1, 1);
+        const dayOfWeek = firstDay.getDay();
+        // 第1金曜日を求める
+        const firstFriday = 1 + ((5 - dayOfWeek + 7) % 7);
+        // 第3金曜日 = 第1金曜日 + 14日
+        const thirdFriday = firstFriday + 14;
+        sqDates.push(new Date(year, month - 1, thirdFriday));
+      }
+      return sqDates;
+    }
+
+    /**
+     * 指定日がSQ翌営業日かどうかを判定
+     * @param {Date} date - 判定対象日
+     * @param {Date[]} sqDates - SQ日の配列
+     * @returns {boolean}
+     */
+    function isAfterSQDay(date, sqDates) {
+      const targetDate = new Date(date);
+      targetDate.setHours(0, 0, 0, 0);
+
+      for (const sqDate of sqDates) {
+        const sq = new Date(sqDate);
+        sq.setHours(0, 0, 0, 0);
+
+        // SQ翌日（土日を飛ばして月曜日）
+        const nextBusinessDay = new Date(sq);
+        nextBusinessDay.setDate(nextBusinessDay.getDate() + 3); // 金曜→月曜
+
+        if (targetDate.getTime() === nextBusinessDay.getTime()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /**
      * 売り抜け日を検出してカウント
      * 条件: 前日比0.2%以上下落 かつ 出来高が前日より増加
      * マイナスカウント: 5%上昇 または 25営業日経過 で期限切れ
+     * SQ翌日: 売り抜け日としてカウントせず、警告フラグのみ
      */
     function countDistributionDays(quotes, lookbackDays = 25) {
-      if (!quotes || quotes.length < lookbackDays + 1) return { count: 0, details: [] };
+      if (!quotes || quotes.length < lookbackDays + 1) return { count: 0, details: [], sqWarnings: [] };
 
       const distributionDays = [];
+      const sqWarnings = [];
       const recentQuotes = quotes.slice(-(lookbackDays + 1));
       const currentPrice = quotes[quotes.length - 1].close;
+
+      // SQ日を取得（現在年と前年）
+      const currentYear = new Date().getFullYear();
+      const sqDates = [
+        ...getUSOptionsExpirationDates(currentYear - 1),
+        ...getUSOptionsExpirationDates(currentYear),
+        ...getUSOptionsExpirationDates(currentYear + 1)
+      ];
+
+      // 平均出来高を計算（50日）
+      const avgVolume = quotes.slice(-50).reduce((sum, q) => sum + q.volume, 0) / 50;
 
       for (let i = 1; i < recentQuotes.length; i++) {
         const today = recentQuotes[i];
@@ -1006,24 +1064,43 @@
         // 売り抜け日の条件: 0.2%以上下落 かつ 出来高増加
         const priceChange = (today.close - yesterday.close) / yesterday.close;
         const volumeIncreased = today.volume > yesterday.volume;
+        const volumeAboveAvg = today.volume > avgVolume;
 
-        if (priceChange <= -0.002 && volumeIncreased) {
-          const daysAgo = recentQuotes.length - 1 - i;
-          const priceGainSince = (currentPrice - today.close) / today.close;
+        // SQ翌日かどうかをチェック
+        const afterSQ = isAfterSQDay(today.date, sqDates);
 
-          // マイナスカウント条件をチェック
-          const expiredBy25Days = daysAgo >= 25;
-          const expiredBy5PercentGain = priceGainSince >= 0.05;
-          const expired = expiredBy25Days || expiredBy5PercentGain;
+        if (priceChange <= -0.002) {
+          if (afterSQ) {
+            // SQ翌日の場合: 売り抜け日としてカウントしない
+            // ただし高出来高での下落は警告として記録
+            if (volumeAboveAvg) {
+              sqWarnings.push({
+                date: today.date,
+                price: today.close,
+                priceChange: (priceChange * 100).toFixed(2),
+                volumeRatio: (today.volume / avgVolume * 100).toFixed(0),
+                flag: '⚠️ SQ翌日の高出来高下落'
+              });
+            }
+          } else if (volumeIncreased) {
+            // 通常の売り抜け日
+            const daysAgo = recentQuotes.length - 1 - i;
+            const priceGainSince = (currentPrice - today.close) / today.close;
 
-          distributionDays.push({
-            date: today.date,
-            price: today.close,
-            priceChange: (priceChange * 100).toFixed(2),
-            daysAgo,
-            expired,
-            expiredReason: expiredBy25Days ? '25日経過' : expiredBy5PercentGain ? '5%上昇' : null
-          });
+            // マイナスカウント条件をチェック
+            const expiredBy25Days = daysAgo >= 25;
+            const expiredBy5PercentGain = priceGainSince >= 0.05;
+            const expired = expiredBy25Days || expiredBy5PercentGain;
+
+            distributionDays.push({
+              date: today.date,
+              price: today.close,
+              priceChange: (priceChange * 100).toFixed(2),
+              daysAgo,
+              expired,
+              expiredReason: expiredBy25Days ? '25日経過' : expiredBy5PercentGain ? '5%上昇' : null
+            });
+          }
         }
       }
 
@@ -1034,7 +1111,8 @@
         count: activeDays.length,
         total: distributionDays.length,
         expiredCount: distributionDays.filter(d => d.expired).length,
-        details: distributionDays
+        details: distributionDays,
+        sqWarnings: sqWarnings
       };
     }
 
@@ -1105,6 +1183,15 @@
       } else {
         status = 'CONFIRMED';
         message = `✅ <span style="color: var(--success);">上昇トレンド確認</span>`;
+      }
+
+      // SQ翌日警告を追加
+      const allSqWarnings = [...(spyDist.sqWarnings || []), ...(nasdaqDist.sqWarnings || [])];
+      if (allSqWarnings.length > 0) {
+        const uniqueWarnings = allSqWarnings.filter((w, i, arr) =>
+          arr.findIndex(x => new Date(x.date).toDateString() === new Date(w.date).toDateString()) === i
+        );
+        message += `<br><span style="font-size: 0.75rem; color: var(--warning);">📅 ${uniqueWarnings.length}件のSQ翌日警告あり</span>`;
       }
 
       statusEl.innerHTML = message;
