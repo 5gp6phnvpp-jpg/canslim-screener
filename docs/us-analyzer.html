@@ -2661,6 +2661,9 @@
       }
 
       batchResults = [];
+      // 前回の保存データをクリア（重複防止）
+      localStorage.removeItem('batchResults');
+
       const progressDiv = document.getElementById('batchProgress');
       const progressBar = document.getElementById('batchProgressBar');
       const statusSpan = document.getElementById('batchStatus');
