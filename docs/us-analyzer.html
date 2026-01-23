@@ -1449,6 +1449,102 @@
     }
 
     // ========================================
+    // ブレイクアウト・ピボット検出
+    // ベース形成期間中のピボットを特定
+    // ========================================
+
+    function detectOriginalPivot(quotes) {
+      if (quotes.length < 100) {
+        return { originalPivot: null, breakoutDate: null, breakoutDetected: false };
+      }
+
+      // 過去100日間のデータを分析
+      const last100 = quotes.slice(-100);
+
+      // ピーク（局所的高値）を検出
+      const peaks = [];
+      for (let i = 5; i < last100.length - 5; i++) {
+        const curr = last100[i];
+        const before = Math.max(...last100.slice(Math.max(0, i - 5), i).map(q => q.high));
+        const after = Math.max(...last100.slice(i + 1, Math.min(last100.length, i + 6)).map(q => q.high));
+
+        if (curr.high >= before && curr.high >= after) {
+          peaks.push({
+            index: i,
+            date: curr.date,
+            price: curr.high,
+            volume: curr.volume
+          });
+        }
+      }
+
+      if (peaks.length === 0) {
+        return { originalPivot: null, breakoutDate: null, breakoutDetected: false };
+      }
+
+      // 最も高いピーク（潜在的なピボット）を見つける
+      const sortedPeaks = [...peaks].sort((a, b) => b.price - a.price);
+
+      // ブレイクアウトを検出
+      // 条件: ピークを超えて、その後価格が上昇を維持
+      for (const peak of sortedPeaks) {
+        // このピーク以降のデータを確認
+        const afterPeak = last100.slice(peak.index + 1);
+
+        // ブレイクアウト日を探す（ピーク価格を終値で超えた最初の日）
+        const breakoutIndex = afterPeak.findIndex(q => q.close > peak.price);
+
+        if (breakoutIndex >= 0) {
+          const breakoutDay = afterPeak[breakoutIndex];
+          const afterBreakout = afterPeak.slice(breakoutIndex);
+
+          // ブレイクアウト後に価格が維持されているか確認
+          const currentPrice = quotes[quotes.length - 1].close;
+          const priceHeld = currentPrice > peak.price * 0.95;  // 5%以内の下落は許容
+
+          if (priceHeld && afterBreakout.length >= 3) {
+            // 元のピボットからの距離を計算
+            const distanceFromOriginalPivot = ((currentPrice - peak.price) / peak.price) * 100;
+
+            return {
+              originalPivot: peak.price,
+              breakoutDate: breakoutDay.date,
+              breakoutDetected: true,
+              daysAfterBreakout: afterBreakout.length,
+              distanceFromOriginalPivot: parseFloat(distanceFromOriginalPivot.toFixed(2)),
+              isExtendedFromOriginal: distanceFromOriginalPivot > 5,
+              isChasing: distanceFromOriginalPivot > 10,
+              buyZoneStatus: distanceFromOriginalPivot > 10
+                ? '❌ チェイス圏（+10%超、見送り推奨）'
+                : distanceFromOriginalPivot > 5
+                  ? '⚠️ 拡張中（+5%超、慎重に）'
+                  : distanceFromOriginalPivot >= 0
+                    ? '✅ バイゾーン内（ピボット〜+5%）'
+                    : '⏳ ピボット手前'
+            };
+          }
+        }
+      }
+
+      // ブレイクアウトが検出されなかった場合
+      // 最高のピークをベース形成中のピボット候補として返す
+      const highestPeak = sortedPeaks[0];
+      const currentPrice = quotes[quotes.length - 1].close;
+      const distanceToPivot = ((highestPeak.price - currentPrice) / currentPrice) * 100;
+
+      return {
+        originalPivot: highestPeak.price,
+        breakoutDate: null,
+        breakoutDetected: false,
+        distanceToPivot: parseFloat(distanceToPivot.toFixed(2)),
+        isApproaching: distanceToPivot <= 5 && distanceToPivot > 0,
+        buyZoneStatus: distanceToPivot <= 5 && distanceToPivot > 0
+          ? '🟡 ピボット接近中（あと' + distanceToPivot.toFixed(1) + '%）'
+          : '⏳ ベース形成中'
+      };
+    }
+
+    // ========================================
     // VCPパターン検出（ミネルヴィニ定義準拠）
     // Volatility Contraction Pattern
     // ========================================
@@ -1700,7 +1796,10 @@
       const current = quotes[quotes.length - 1];
       const price = current.close;
 
-      // ベースパターンに基づくピボットポイント計算
+      // 元のピボット（ブレイクアウト前）を検出
+      const originalPivotData = detectOriginalPivot(quotes);
+
+      // ベースパターンに基づくピボットポイント計算（従来のロジック）
       let pivotPoint;
       let pivotType = '直近ベース高値';
 
@@ -1742,6 +1841,17 @@
         pivotPoint = flatBasePivot;
       }
 
+      // ブレイクアウト済みの場合は元のピボットを優先
+      if (originalPivotData.breakoutDetected && originalPivotData.originalPivot) {
+        // 元のピボットと現在のピボットの差が大きい場合は警告
+        const pivotDifference = ((pivotPoint - originalPivotData.originalPivot) / originalPivotData.originalPivot) * 100;
+
+        // 元のピボットが有効な場合（現在価格が元のピボットより上）
+        if (price > originalPivotData.originalPivot) {
+          pivotType = `元のブレイクアウトポイント`;
+        }
+      }
+
       // 理想的なエントリーポイント（ピボット + 0.1%）
       const idealEntry = pivotPoint * 1.001;
 
@@ -1753,8 +1863,6 @@
       const target25 = pivotPoint * 1.25;
 
       // リスクリワードレシオ（現在価格でエントリーした場合）
-      // リスク = 現在価格 - ストップロス
-      // リワード = 目標 - 現在価格
       const risk = price - stopLoss;
       const reward = target20 - price;
       const riskRewardRatio = risk > 0 ? reward / risk : 0;
@@ -1763,6 +1871,20 @@
       const distanceFromPivot = ((price - pivotPoint) / pivotPoint) * 100;
       const isInBuyZone = distanceFromPivot >= -2 && distanceFromPivot <= 5;
       const isExtended = distanceFromPivot > 5;
+
+      // 元のピボットからの距離（ブレイクアウト済みの場合）
+      let originalPivotStatus = null;
+      if (originalPivotData.breakoutDetected && originalPivotData.originalPivot) {
+        originalPivotStatus = {
+          originalPivot: originalPivotData.originalPivot,
+          breakoutDate: originalPivotData.breakoutDate,
+          daysAfterBreakout: originalPivotData.daysAfterBreakout,
+          distanceFromOriginalPivot: originalPivotData.distanceFromOriginalPivot,
+          isExtendedFromOriginal: originalPivotData.isExtendedFromOriginal,
+          isChasing: originalPivotData.isChasing,
+          buyZoneStatus: originalPivotData.buyZoneStatus
+        };
+      }
 
       return {
         pivotPoint,
@@ -1778,7 +1900,9 @@
         isInBuyZone,
         isExtended,
         buyZoneStatus: isExtended ? '⚠️ 拡張中（+5%超、エントリー非推奨）' :
-          isInBuyZone ? '✅ バイゾーン内（ピボット〜+5%）' : '⏳ 待機中'
+          isInBuyZone ? '✅ バイゾーン内（ピボット〜+5%）' : '⏳ 待機中',
+        // 元のピボット情報（ブレイクアウト済みの場合）
+        originalPivotStatus
       };
     }
 
@@ -2129,7 +2253,38 @@
         const rm = analysis.riskManagement;
         const rrColor = parseFloat(rm.riskRewardRatio) >= 3 ? '#10b981' :
           parseFloat(rm.riskRewardRatio) >= 2 ? '#f59e0b' : '#ef4444';
+
+        // 元のピボット情報（ブレイクアウト済みの場合）
+        let originalPivotHtml = '';
+        if (rm.originalPivotStatus) {
+          const ops = rm.originalPivotStatus;
+          const chasingColor = ops.isChasing ? '#ef4444' : ops.isExtendedFromOriginal ? '#f59e0b' : '#10b981';
+          originalPivotHtml = `
+            <div style="margin-bottom: 16px; padding: 16px; background: linear-gradient(135deg, ${chasingColor}15, ${chasingColor}05); border: 2px solid ${chasingColor}; border-radius: 12px;">
+              <div style="font-size: 1.1rem; font-weight: 600; color: ${chasingColor}; margin-bottom: 8px;">
+                ${ops.buyZoneStatus}
+              </div>
+              <div class="metrics-grid" style="gap: 8px;">
+                <div style="background: white; padding: 10px; border-radius: 8px;">
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">元のピボット</div>
+                  <div style="font-weight: 600;">$${ops.originalPivot.toFixed(2)}</div>
+                </div>
+                <div style="background: white; padding: 10px; border-radius: 8px;">
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">ピボットからの距離</div>
+                  <div style="font-weight: 600; color: ${chasingColor};">+${ops.distanceFromOriginalPivot.toFixed(1)}%</div>
+                </div>
+                <div style="background: white; padding: 10px; border-radius: 8px;">
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">ブレイクアウト後</div>
+                  <div style="font-weight: 600;">${ops.daysAfterBreakout}日</div>
+                </div>
+              </div>
+              ${ops.isChasing ? '<div style="margin-top: 8px; font-size: 0.85rem; color: #ef4444;">⚠️ 元のエントリーポイントから10%以上離れています。次のベース形成を待つことを推奨します。</div>' : ''}
+            </div>
+          `;
+        }
+
         const riskHtml = `
+          ${originalPivotHtml}
           <div style="margin-bottom: 16px; padding: 16px; background: ${rm.isInBuyZone ? '#dcfce7' : rm.isExtended ? '#fef3c7' : '#f1f5f9'}; border-radius: 12px; text-align: center;">
             <span style="font-size: 1.2rem; font-weight: 600;">${rm.buyZoneStatus}</span>
             <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">
