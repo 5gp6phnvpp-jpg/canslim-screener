@@ -2230,16 +2230,18 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       const ma50Rising = ma50_1month_ago ? ma50 > ma50_1month_ago : null;
 
       const criteria = {
-        priceAbove150And200: current > ma150 && current > ma200,
-        ma150AboveMA200: ma150 > ma200,
-        priceAboveMA50: current > ma50,
+        priceAbove150: current > ma150,
+        priceAbove200: current > ma200,
+        ma150Above200: ma150 > ma200,
         ma200Rising: ma200Rising,
-        above30PercentFromLow: ((current - low52) / low52) * 100 >= 30,
-        within25PercentOfHigh: ((high52 - current) / high52) * 100 <= 25,
+        ma50Above150: ma50 > ma150,
+        ma50Above200: ma50 > ma200,
+        priceAbove50: current > ma50,
+        highLowCondition: ((current - low52) / low52 >= 0.30) && ((high52 - current) / high52 <= 0.25)
       };
 
       const passCount = Object.values(criteria).filter(v => v === true).length;
-      const passed = passCount >= 5;
+      const passed = passCount >= 7; // 8項目中7項目以上で合格とする（少し厳しめに設定）
 
       // ========================================
       // Minervini 4ステージ分類
