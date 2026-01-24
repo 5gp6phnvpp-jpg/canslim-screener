@@ -831,12 +831,15 @@
               <button onclick="watchlistManager.createList(prompt('新しいリスト名:'))"
                 style="padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: white; cursor: pointer;"
                 title="新規リスト作成">＋</button>
+              <button id="renameListBtn" onclick="watchlistManager.renameList()"
+                style="padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: white; cursor: pointer; margin-left:4px;"
+                title="リスト名変更">✏️</button>
             </div>
           </div>
           <div style="display: flex; gap: 8px; margin-bottom: 12px;">
             <input type="text" id="watchlistInput" placeholder="銘柄を追加（例: AAPL, MSFT, NVDA）"
               style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;">
-            <button onclick="addToWatchlist()"
+            <button id="addTickerBtn" onclick="addToWatchlist()"
               style="padding: 10px 16px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer;">
               ➕ 追加
             </button>
@@ -3579,6 +3582,41 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         this.renderPanel();
       }
 
+      renameList() {
+        if (this.activeListId === ALL_LIST_ID) {
+          alert('「すべて」リストの名前は変更できません');
+          return;
+        }
+        const list = this.lists.find(l => l.id === this.activeListId) || this.lists[0];
+        const newName = prompt('新しいリスト名を入力してください:', list.name);
+        if (newName && newName !== list.name) {
+          list.name = newName;
+          this.save();
+          this.renderPanel();
+          this.updateSelect();
+        }
+      }
+
+      updateUI() {
+        const list = this.lists.find(l => l.id === this.activeListId) || this.lists[0];
+
+        const input = document.getElementById('watchlistInput');
+        const btn = document.getElementById('addTickerBtn');
+        const renameBtn = document.getElementById('renameListBtn');
+
+        let targetName = list.name;
+        if (this.activeListId === ALL_LIST_ID) {
+          targetName = this.lists[0].name;
+          if (renameBtn) { renameBtn.disabled = true; renameBtn.style.opacity = '0.5'; }
+          if (input) input.placeholder = `「すべて」表示中（追加先: ${targetName}）`;
+        } else {
+          if (renameBtn) { renameBtn.disabled = false; renameBtn.style.opacity = '1'; }
+          if (input) input.placeholder = `「${targetName}」に銘柄を追加 (例: AAPL, MSFT)`;
+        }
+
+        if (btn) btn.textContent = `➕ ${targetName}に追加`;
+      }
+
       updateSelect() {
         const allTickers = new Set();
         this.lists.forEach(l => l.tickers.forEach(t => allTickers.add(t)));
@@ -3596,6 +3634,8 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
 
         const sectionSelect = document.getElementById('sectionWatchlistSelect');
         if (sectionSelect) sectionSelect.innerHTML = html;
+
+        this.updateUI();
       }
 
       renderPanel() {
