@@ -2922,6 +2922,10 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
               titleFont: { size: 12 },
               bodyFont: { size: 11 },
               callbacks: {
+                title: function (context) {
+                  const idx = context[0].parsed.x;
+                  return labels[idx] || '';
+                },
                 label: function (context) {
                   return `${context.dataset.label}: $${context.parsed.y?.toFixed(2) || '-'}`;
                 }
@@ -2932,7 +2936,7 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
                 enabled: true,
                 mode: 'x',
                 modifierKey: null,
-                threshold: 1,
+                threshold: 0,
                 onPanStart: () => true,
                 onPanComplete: function ({ chart }) {
                   // 出来高チャートにも同じパンを適用
@@ -2942,7 +2946,8 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
               zoom: {
                 wheel: {
                   enabled: true,
-                  speed: 0.1
+                  speed: 0.1,
+                  modifierKey: 'ctrl',
                 },
                 pinch: {
                   enabled: true
@@ -3487,8 +3492,7 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         if (saved) return JSON.parse(saved);
         // デフォルトリスト
         return [
-          { id: 'wl_default', name: 'すべて', tickers: ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'], created_at: Date.now() },
-          { id: 'wl_fang', name: 'FANG+', tickers: ['META', 'AMZN', 'NFLX', 'GOOGL', 'AAPL', 'MSFT', 'NVDA', 'TSLA'], created_at: Date.now() }
+          { id: 'wl_default', name: 'メイン', tickers: ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'], created_at: Date.now() }
         ];
       }
 
