@@ -3738,6 +3738,15 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         watchlistManager.activeListId = e.target.value;
         watchlistManager.save();
         watchlistManager.renderPanel();
+        watchlistManager.updateSelect();
+      });
+
+      // 一括分析セクション内のリスト切り替え
+      document.getElementById('sectionWatchlistSelect')?.addEventListener('change', (e) => {
+        watchlistManager.activeListId = e.target.value;
+        watchlistManager.save();
+        watchlistManager.renderPanel();
+        watchlistManager.updateSelect();
       });
 
       // 新規リスト作成
