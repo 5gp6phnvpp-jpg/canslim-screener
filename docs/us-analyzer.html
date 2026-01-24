@@ -852,6 +852,38 @@
     </details>
     </section>
 
+    <!-- クラウド設定同期 (Gist連携) -->
+    <details class="api-settings"
+      style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; background: #f8fafc; border-radius: 8px;">
+      <summary style="font-weight: 600; color: #475569;">☁️ 設定の同期とバックアップ (GitHub Gist)</summary>
+      <div class="api-settings-content">
+        <input type="password" id="githubPat" placeholder="GitHub Personal Access Token (classic)">
+        <button onclick="syncManager.init()" id="initSyncBtn"
+          style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer;">連携開始</button>
+        <div style="flex: 1; text-align: right;">
+          <span id="syncStatus" style="font-size: 0.8rem; color: var(--text-muted);">未連携</span>
+        </div>
+      </div>
+
+      <div id="syncControls" style="display: none; margin-top: 12px; gap: 8px; flex-wrap: wrap;">
+        <button onclick="syncManager.upload()"
+          style="padding: 6px 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+          ⬆️ 設定をアップロード (PCから)
+        </button>
+        <button onclick="syncManager.download()"
+          style="padding: 6px 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+          ⬇️ 設定をダウンロード (スマホへ)
+        </button>
+        <span style="font-size: 0.75rem; color: var(--text-muted); align-self: center;">※APIキーとウォッチリストが同期されます</span>
+      </div>
+
+      <div style="margin-top: 12px; font-size: 0.8rem; color: #64748b;">
+        <strong>手順:</strong> <a href="https://github.com/settings/tokens" target="_blank" style="color: #2563eb;">GitHub
+          Token設定</a>から「Generate new token (classic)」を選択 → Noteに適当な名前 → <strong>Scopesで「gist」のみチェック</strong> → Generate
+        token → トークンをコピーして貼り付け。
+      </div>
+    </details>
+
     <!-- ウォッチリスト -->
     <section class="section">
       <details class="api-settings" id="watchlistSection">
@@ -4121,6 +4153,199 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
     function toggleWatchlistPanel() {
       document.getElementById('watchlistPanel').classList.toggle('open');
     }
+
+    // ========================================
+    // クラウド設定同期 (GitHub Gist)
+    // ========================================
+    class GithubSyncManager {
+      constructor() {
+        this.filename = 'canslim-settings.json';
+        this.pat = localStorage.getItem('githubPat') || '';
+        if (this.pat) document.getElementById('githubPat').value = this.pat;
+        this.gistId = localStorage.getItem('gistId');
+
+        this.updateStatus();
+      }
+
+      async init() {
+        const pat = document.getElementById('githubPat')?.value.trim();
+        if (!pat) {
+          alert('GitHub Personal Access Tokenを入力してください');
+          return;
+        }
+        this.pat = pat;
+        localStorage.setItem('githubPat', pat);
+
+        const btn = document.getElementById('initSyncBtn');
+        btn.disabled = true;
+        btn.textContent = '連携中...';
+
+        try {
+          // 既存のGistを探す
+          const gists = await this.fetchGists();
+          const targetGist = gists.find(g => g.files[this.filename]);
+
+          if (targetGist) {
+            this.gistId = targetGist.id;
+            localStorage.setItem('gistId', this.gistId);
+            alert('既存の設定ファイルが見つかりました。同期可能です。');
+          } else {
+            // 新規作成
+            if (confirm('設定ファイルが見つかりません。現在の設定で新規作成しますか？')) {
+              await this.createGist();
+              alert('新規設定ファイルを作成しました。');
+            }
+          }
+          this.updateStatus();
+        } catch (e) {
+          alert('エラー: ' + e.message);
+          console.error(e);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '連携開始';
+        }
+      }
+
+      async fetchGists() {
+        const res = await fetch('https://api.github.com/gists', {
+          headers: { 'Authorization': `token ${this.pat}` }
+        });
+        if (!res.ok) throw new Error('Gist一覧の取得に失敗しました');
+        return await res.json();
+      }
+
+      async createGist() {
+        const content = this.createBackupData();
+        const res = await fetch('https://api.github.com/gists', {
+          method: 'POST',
+          headers: {
+            'Authorization': `token ${this.pat}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            description: 'CANSLIM Tool Settings Sync',
+            public: false,
+            files: {
+              [this.filename]: { content: JSON.stringify(content, null, 2) }
+            }
+          })
+        });
+        if (!res.ok) throw new Error('Gist作成に失敗しました');
+        const json = await res.json();
+        this.gistId = json.id;
+        localStorage.setItem('gistId', this.gistId);
+      }
+
+      createBackupData() {
+        return {
+          updatedAt: new Date().toISOString(),
+          settings: {
+            alphaVantageKey: localStorage.getItem('alphaVantageKey'),
+            finnhubApiKey: localStorage.getItem('finnhubApiKey'),
+            geminiApiKey: localStorage.getItem('geminiApiKey'),
+            autoAnalyze: localStorage.getItem('autoAnalyzeSchedule')
+          },
+          watchlist: JSON.parse(localStorage.getItem('usMetrics_watchlists') || '[]'),
+          activeListId: localStorage.getItem('usMetrics_activeListId')
+        };
+      }
+
+      async upload() {
+        if (!this.gistId || !this.pat) return alert('連携設定が完了していません');
+
+        if (!confirm('現在の設定でクラウドを上書きしますか？')) return;
+
+        const content = this.createBackupData();
+
+        try {
+          const res = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `token ${this.pat}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              files: {
+                [this.filename]: { content: JSON.stringify(content, null, 2) }
+              }
+            })
+          });
+
+          if (!res.ok) throw new Error('アップロード失敗');
+          alert('✅ 設定をクラウドに保存しました');
+          this.updateStatus();
+        } catch (e) {
+          alert('アップロード中にエラーが発生しました: ' + e.message);
+        }
+      }
+
+      async download() {
+        if (!this.gistId || !this.pat) return alert('連携設定が完了していません');
+
+        if (!confirm('クラウドの設定で現在の設定を上書きしますか？\n（現在のローカル設定は失われます）')) return;
+
+        try {
+          const res = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+            headers: { 'Authorization': `token ${this.pat}` }
+          });
+
+          if (!res.ok) throw new Error('データ取得失敗');
+          const gist = await res.json();
+          const file = gist.files[this.filename];
+
+          if (!file || !file.content) throw new Error('設定ファイルが空です');
+
+          const data = JSON.parse(file.content);
+          this.restoreData(data);
+
+          alert('✅ 設定を復元しました。ページをリロードします。');
+          location.reload();
+        } catch (e) {
+          alert('ダウンロード中にエラーが発生しました: ' + e.message);
+        }
+      }
+
+      restoreData(data) {
+        if (data.settings) {
+          if (data.settings.alphaVantageKey) localStorage.setItem('alphaVantageKey', data.settings.alphaVantageKey);
+          if (data.settings.finnhubApiKey) localStorage.setItem('finnhubApiKey', data.settings.finnhubApiKey);
+          if (data.settings.geminiApiKey) localStorage.setItem('geminiApiKey', data.settings.geminiApiKey);
+          if (data.settings.autoAnalyze) localStorage.setItem('autoAnalyzeSchedule', data.settings.autoAnalyze);
+        }
+        if (data.watchlist) {
+          localStorage.setItem('usMetrics_watchlists', JSON.stringify(data.watchlist));
+        }
+        if (data.activeListId) {
+          localStorage.setItem('usMetrics_activeListId', data.activeListId);
+        }
+      }
+
+      updateStatus() {
+        const statusEl = document.getElementById('syncStatus');
+        const controls = document.getElementById('syncControls');
+        const patInput = document.getElementById('githubPat');
+        const initBtn = document.getElementById('initSyncBtn');
+
+        if (this.gistId && this.pat) {
+          statusEl.innerHTML = '✅ <span style="color:green">連携中</span> | クラウド保存可';
+          controls.style.display = 'flex';
+          patInput.style.display = 'none'; // トークンを隠す
+          initBtn.textContent = '再設定';
+          initBtn.onclick = () => {
+            if (confirm('連携を解除してトークンを再入力しますか？')) {
+              this.gistId = null;
+              this.pat = null;
+              localStorage.removeItem('gistId');
+              localStorage.removeItem('githubPat');
+              location.reload();
+            }
+          };
+        }
+      }
+    }
+
+    const syncManager = new GithubSyncManager();
+
   </script>
 
   <!-- ウォッチリストパネル HTML -->
