@@ -3874,10 +3874,8 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
             return JSON.parse(saved);
           } catch (e) {
             console.error('Failed to parse watchlist data', e);
-            // パースエラー時はデフォルトリストに戻す
           }
         }
-        // デフォルトリスト
         return [
           { id: 'wl_default', name: 'メイン', tickers: ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'], created_at: Date.now() }
         ];
@@ -3932,30 +3930,78 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         this.updateSelect();
       }
 
+      // 追加: リスト選択プロンプト
+      promptListSelection(message) {
+        if (this.lists.length === 0) return null;
+        if (this.lists.length === 1) return this.lists[0];
+
+        const options = this.lists.map((l, i) => `${i + 1}. ${l.name}`).join('\n');
+        const input = prompt(`${message}\n(番号を入力)\n\n${options}`);
+        if (!input) return null;
+
+        const num = parseInt(input.trim());
+        if (isNaN(num) || num < 1 || num > this.lists.length) {
+          alert('無効な番号です');
+          return null;
+        }
+        return this.lists[num - 1];
+      }
+
       addTicker(ticker) {
         let list;
+        // 「すべて」選択時は追加先を選ばせる
         if (this.activeListId === ALL_LIST_ID) {
-          list = this.lists[0];
-          if (list.tickers.includes(ticker)) return;
-          alert(`「すべて」表示中のため、「${list.name}」に追加します`);
+          list = this.promptListSelection(`「すべて」表示中です。\n「${ticker}」の追加先リストを選択してください:`);
+          if (!list) return;
         } else {
           list = this.getActiveList();
-          if (list.tickers.includes(ticker)) {
-            alert('既にリストに含まれています');
-            return;
-          }
         }
+
+        if (list.tickers.includes(ticker)) {
+          alert(`リスト「${list.name}」には既に登録されています`);
+          return;
+        }
+
         list.tickers.push(ticker);
         this.save();
         this.renderPanel();
+        this.updateSelect();
 
-        // 分析実行
         analyzeStock(ticker, document.getElementById('alphaVantageKey').value);
       }
 
-      removeTicker(ticker) {
-        // if (!confirm(`${ticker} をリストから削除しますか？`)) return;
+      // 追加: リスト間移動
+      moveTicker(ticker) {
+        const targetList = this.promptListSelection(`「${ticker}」の移動先リストを選択してください:`);
+        if (!targetList) return;
 
+        let moved = false;
+        // 現在含まれているリストから削除
+        this.lists.forEach(l => {
+          if (l.id === targetList.id) return;
+          const idx = l.tickers.indexOf(ticker);
+          if (idx !== -1) {
+            l.tickers.splice(idx, 1);
+            moved = true;
+          }
+        });
+
+        // 移動先に追加
+        if (!targetList.tickers.includes(ticker)) {
+          targetList.tickers.push(ticker);
+        } else {
+          if (moved) alert(`「${targetList.name}」には既に存在したため、元のリストから削除のみ行いました`);
+          else alert(`「${targetList.name}」には既に存在します`);
+          if (!moved) return;
+        }
+
+        this.save();
+        this.renderPanel();
+        this.updateSelect();
+        if (moved) alert(`「${targetList.name}」へ移動しました`);
+      }
+
+      removeTicker(ticker) {
         if (this.activeListId === ALL_LIST_ID) {
           let removedCount = 0;
           this.lists.forEach(l => {
@@ -3971,6 +4017,7 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         }
         this.save();
         this.renderPanel();
+        this.updateSelect();
       }
 
       renameList() {
@@ -3990,22 +4037,21 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
 
       updateUI() {
         const list = this.lists.find(l => l.id === this.activeListId) || this.lists[0];
-
         const input = document.getElementById('watchlistInput');
         const btn = document.getElementById('addTickerBtn');
         const renameBtn = document.getElementById('renameListBtn');
 
         let targetName = list.name;
         if (this.activeListId === ALL_LIST_ID) {
-          targetName = this.lists[0].name;
+          targetName = '指定リスト';
           if (renameBtn) { renameBtn.disabled = true; renameBtn.style.opacity = '0.5'; }
-          if (input) input.placeholder = `「すべて」表示中（追加先: ${targetName}）`;
+          if (input) input.placeholder = `「すべて」表示中（追加時にリスト選択）`;
         } else {
           if (renameBtn) { renameBtn.disabled = false; renameBtn.style.opacity = '1'; }
           if (input) input.placeholder = `「${targetName}」に銘柄を追加 (例: AAPL, MSFT)`;
         }
 
-        if (btn) btn.textContent = `➕ ${targetName}に追加`;
+        if (btn) btn.textContent = `➕ 追加`;
       }
 
       updateSelect() {
@@ -4053,19 +4099,18 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
                <div style="font-size:0.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">${listName}</div>
              </div>
              <div class="stock-actions">
-               <button onclick="event.stopPropagation(); watchlistManager.removeTicker('${ticker}')">❌</button>
+               <button onclick="event.stopPropagation(); watchlistManager.moveTicker('${ticker}')" title="リスト移動" style="margin-right:4px;">➡</button>
+               <button onclick="event.stopPropagation(); watchlistManager.removeTicker('${ticker}')" title="削除">❌</button>
              </div>
           </div>
         `}).join('');
       }
 
-      // 既存の「一括分析」セクションと同期
       syncToLegacyUI() {
         const list = this.getActiveList();
         const table = document.getElementById('watchlistTable');
         const countEl = document.getElementById('watchlistCount');
 
-        // グローバル変数 watchlist を更新
         if (typeof watchlist !== 'undefined') {
           watchlist.length = 0;
           list.tickers.forEach(t => watchlist.push(t));
@@ -4077,7 +4122,10 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
           table.innerHTML = list.tickers.map(ticker => `
             <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem;">
               <span style="font-weight: 600;">${ticker}</span>
-              <button onclick="watchlistManager.removeTicker('${ticker}')" style="background: none; border: none; color: #ef4444; cursor: pointer; margin-left: 4px;">×</button>
+              <div>
+                <button onclick="watchlistManager.moveTicker('${ticker}')" style="background: none; border: none; color: #3b82f6; cursor: pointer; margin-right: 4px;" title="リスト移動">➡</button>
+                <button onclick="watchlistManager.removeTicker('${ticker}')" style="background: none; border: none; color: #ef4444; cursor: pointer;" title="削除">×</button>
+              </div>
             </div>
           `).join('');
         }
