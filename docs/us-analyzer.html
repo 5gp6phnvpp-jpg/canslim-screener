@@ -198,6 +198,116 @@
       }
     }
 
+    /* ウォッチリスト */
+    .watchlist-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 320px;
+      height: 100vh;
+      background: var(--bg-secondary);
+      box-shadow: -4px 0 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .watchlist-panel.open {
+      transform: translateX(0);
+    }
+
+    .watchlist-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--primary);
+      color: white;
+    }
+
+    .watchlist-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .watchlist-controls {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      background: var(--bg-accent);
+    }
+
+    .watchlist-select {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .stock-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .stock-item:hover {
+      transform: translateX(-4px);
+      border-color: var(--primary);
+    }
+
+    .stock-info div:first-child {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .stock-info div:last-child {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .stock-actions button {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .stock-actions button:hover {
+      color: var(--danger);
+    }
+
+    .watchlist-toggle {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: var(--primary);
+      color: white;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      box-shadow: var(--shadow-lg);
+      cursor: pointer;
+      z-index: 999;
+      border: none;
+    }
+
     /* 結果セクション */
     .results {
       display: none;
@@ -2316,7 +2426,8 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       const changePercent = (change / prev.close) * 100;
 
       // ヘッダー情報
-      document.getElementById('stockName').textContent = ticker;
+      const stockNameEl = document.getElementById('stockName');
+      stockNameEl.innerHTML = `${ticker} <button onclick="addToCurrentWatchlist('${ticker}')" style="margin-left:12px; padding:4px 12px; border:1px solid var(--primary); background:white; color:var(--primary); border-radius:16px; cursor:pointer; font-size:0.85rem; font-weight:600;">☆ リストに追加</button>`;
       document.getElementById('stockTicker').textContent = `NYSE / NASDAQ`;
       document.getElementById('currentPrice').textContent = `$${current.close.toFixed(2)}`;
 
@@ -3344,135 +3455,195 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
     });
 
     // ========================================
-    // 自動分析機能（ページ開封時）
+    // 新規ウォッチリスト機能 (Watchlist Manager)
     // ========================================
-
-    // 自動分析を初期化
-    function initAutoAnalyzeSchedule() {
-      const enabled = localStorage.getItem('autoAnalyzeEnabled') === 'true';
-      const checkbox = document.getElementById('autoAnalyzeEnabled');
-      if (checkbox) {
-        checkbox.checked = enabled;
+    class WatchlistManager {
+      constructor() {
+        this.storageKey = 'usMetrics_watchlists';
+        this.lists = this.load();
+        this.activeListId = localStorage.getItem('usMetrics_activeListId') || this.lists[0].id;
+        this.renderPanel();
+        this.updateSelect();
       }
 
-      // 前回分析時間を表示
-      updateLastAnalysisDisplay();
-
-      // 自動分析が有効なら、24時間経過をチェック
-      if (enabled && watchlist.length > 0) {
-        checkAndRunAutoAnalysis();
+      load() {
+        const saved = localStorage.getItem(this.storageKey);
+        if (saved) return JSON.parse(saved);
+        // デフォルトリスト
+        return [
+          { id: 'wl_default', name: 'すべて', tickers: ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'], created_at: Date.now() },
+          { id: 'wl_fang', name: 'FANG+', tickers: ['META', 'AMZN', 'NFLX', 'GOOGL', 'AAPL', 'MSFT', 'NVDA', 'TSLA'], created_at: Date.now() }
+        ];
       }
-    }
 
-    // 自動分析のオン/オフ切り替え
-    function toggleAutoAnalyze() {
-      const checkbox = document.getElementById('autoAnalyzeEnabled');
-      const enabled = checkbox.checked;
+      save() {
+        localStorage.setItem(this.storageKey, JSON.stringify(this.lists));
+        localStorage.setItem('usMetrics_activeListId', this.activeListId);
+      }
 
-      localStorage.setItem('autoAnalyzeEnabled', enabled);
+      getActiveList() {
+        return this.lists.find(l => l.id === this.activeListId) || this.lists[0];
+      }
 
-      if (enabled) {
-        if (watchlist.length === 0) {
-          alert('先にウォッチリストに銘柄を追加してください');
-          checkbox.checked = false;
-          localStorage.setItem('autoAnalyzeEnabled', 'false');
+      createList(name) {
+        if (!name) return;
+        const newList = {
+          id: 'wl_' + Date.now(),
+          name: name,
+          tickers: [],
+          created_at: Date.now()
+        };
+        this.lists.push(newList);
+        this.activeListId = newList.id;
+        this.save();
+        this.renderPanel();
+        this.updateSelect();
+        alert(`リスト「${name}」を作成しました`);
+      }
+
+      deleteList() {
+        if (this.lists.length <= 1) {
+          alert('最後のリストは削除できません');
           return;
         }
-        // 今すぐチェック
-        checkAndRunAutoAnalysis();
-      }
-    }
+        if (!confirm('このリストを削除しますか？')) return;
 
-    // 前回分析時間を表示
-    function updateLastAnalysisDisplay() {
-      const saved = localStorage.getItem('batchResults');
-      const displayEl = document.getElementById('lastAnalysisTime');
-      if (!displayEl) return;
-
-      if (!saved) {
-        displayEl.textContent = '前回: なし';
-        return;
+        this.lists = this.lists.filter(l => l.id !== this.activeListId);
+        this.activeListId = this.lists[0].id;
+        this.save();
+        this.renderPanel();
+        this.updateSelect();
       }
 
-      try {
-        const data = JSON.parse(saved);
-        const date = new Date(data.timestamp);
-        const now = new Date();
-        const hoursAgo = Math.round((now - date) / 1000 / 60 / 60);
-
-        if (hoursAgo < 1) {
-          displayEl.textContent = `前回: ${Math.round((now - date) / 1000 / 60)}分前`;
-        } else if (hoursAgo < 24) {
-          displayEl.textContent = `前回: ${hoursAgo}時間前`;
-        } else {
-          const days = Math.round(hoursAgo / 24);
-          displayEl.textContent = `前回: ${days}日前`;
-          displayEl.style.color = '#dc2626'; // 赤色で警告
+      addTicker(ticker) {
+        const list = this.getActiveList();
+        if (list.tickers.includes(ticker)) {
+          alert('既にリストに含まれています');
+          return;
         }
-      } catch (e) {
-        displayEl.textContent = '前回: 不明';
-      }
-    }
+        list.tickers.push(ticker);
+        this.save();
+        this.renderPanel();
 
-    // 前回分析日と今日が違う日なら自動分析
-    async function checkAndRunAutoAnalysis() {
-      const saved = localStorage.getItem('batchResults');
-
-      // 保存データがない場合は実行
-      if (!saved) {
-        console.log('No previous results, running auto-analysis...');
-        runAutoAnalysis();
-        return;
+        // 分析実行
+        analyzeStock(ticker, document.getElementById('alphaVantageKey').value);
       }
 
-      try {
-        const data = JSON.parse(saved);
-        const lastTime = new Date(data.timestamp);
-        const now = new Date();
+      removeTicker(ticker) {
+        if (!confirm(`${ticker} をリストから削除しますか？`)) return;
+        const list = this.getActiveList();
+        list.tickers = list.tickers.filter(t => t !== ticker);
+        this.save();
+        this.renderPanel();
+      }
 
-        // 日付部分だけを比較（年月日）
-        const lastDate = lastTime.toDateString();
-        const todayDate = now.toDateString();
+      updateSelect() {
+        const select = document.getElementById('watchlistSelect');
+        if (!select) return;
+        select.innerHTML = this.lists.map(l =>
+          `<option value="${l.id}" ${l.id === this.activeListId ? 'selected' : ''}>${l.name} (${l.tickers.length})</option>`
+        ).join('');
+      }
 
-        // 前回分析日と今日が違う日なら実行
-        if (lastDate !== todayDate) {
-          console.log(`Last analysis was on ${lastDate}, today is ${todayDate}. Running auto-analysis...`);
-          runAutoAnalysis();
-        } else {
-          console.log(`Already analyzed today (${todayDate}), skipping.`);
+      renderPanel() {
+        const list = this.getActiveList();
+        const container = document.getElementById('watchlistItems');
+        if (!container) return;
+
+        if (list.tickers.length === 0) {
+          container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px;">銘柄がありません<br>検索して追加してください</div>';
+          return;
         }
-      } catch (e) {
-        console.log('Error checking last analysis time:', e);
+
+        container.innerHTML = list.tickers.map(ticker => `
+          <div class="stock-item" onclick="analyzeSingleStock('${ticker}')">
+             <div class="stock-info">
+               <div>${ticker}</div>
+               <div>${list.name}</div>
+             </div>
+             <div class="stock-actions">
+               <button onclick="event.stopPropagation(); watchlistManager.removeTicker('${ticker}')">❌</button>
+             </div>
+          </div>
+        `).join('');
       }
     }
 
-    // 自動分析を実行
-    async function runAutoAnalysis() {
-      console.log('Running auto-analysis...');
+    // グローバルインスタンス
+    let watchlistManager;
 
-      // ウォッチリストセクションを開く
-      const section = document.getElementById('watchlistSection');
-      if (section) section.open = true;
+    // ウォッチリストUIの初期化
+    function initWatchlistUI() {
+      watchlistManager = new WatchlistManager();
 
-      // 分析実行
-      await analyzeAllWatchlist();
+      // リスト切り替え
+      document.getElementById('watchlistSelect').addEventListener('change', (e) => {
+        watchlistManager.activeListId = e.target.value;
+        watchlistManager.save();
+        watchlistManager.renderPanel();
+      });
 
-      // 表示更新
-      updateLastAnalysisDisplay();
+      // 新規リスト作成
+      document.getElementById('createListBtn').addEventListener('click', () => {
+        const name = prompt('新しいリスト名を入力してください:');
+        if (name) watchlistManager.createList(name);
+      });
 
-      // 通知（ブラウザ通知が許可されている場合）
-      if (Notification.permission === 'granted') {
-        new Notification('📊 ウォッチリスト分析完了', {
-          body: `${batchResults.filter(r => r.success).length}銘柄の分析が完了しました`
-        });
-      }
+      // リスト削除
+      document.getElementById('deleteListBtn').addEventListener('click', () => {
+        watchlistManager.deleteList();
+      });
+
+      // 分析結果画面の「追加」ボタンのためにグローバル関数を公開
+      window.addToCurrentWatchlist = (ticker) => {
+        watchlistManager.addTicker(ticker);
+      };
     }
 
-    // 通知許可をリクエスト
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+    // ページ読み込み時に初期化
+    document.addEventListener('DOMContentLoaded', () => {
+      initWatchlistUI();
+      loadSavedResults();
+
+      // APIキー入力時に自動保存
+      document.getElementById('alphaVantageKey')?.addEventListener('change', (e) => {
+        if (e.target.value.trim()) {
+          localStorage.setItem('alphaVantageKey', e.target.value.trim());
+        }
+      });
+
+      // Enterキーで検索
+      document.getElementById('ticker')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') analyzeStock();
+      });
+    });
+
+    // パネルの開閉
+    function toggleWatchlistPanel() {
+      document.getElementById('watchlistPanel').classList.toggle('open');
     }
   </script>
+
+  <!-- ウォッチリストパネル HTML -->
+  <button class="watchlist-toggle" onclick="toggleWatchlistPanel()" title="ウォッチリストを開く">📋</button>
+
+  <div class="watchlist-panel" id="watchlistPanel">
+    <div class="watchlist-header">
+      <h3 style="margin:0;">ウォッチリスト</h3>
+      <button onclick="toggleWatchlistPanel()"
+        style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">✕</button>
+    </div>
+    <div class="watchlist-controls">
+      <select id="watchlistSelect" class="watchlist-select"></select>
+      <button id="createListBtn"
+        style="padding:4px 8px; border-radius:4px; border:1px solid #ddd; cursor:pointer;">＋</button>
+      <button id="deleteListBtn"
+        style="padding:4px 8px; border-radius:4px; border:1px solid #ddd; cursor:pointer; color:red;">🗑️</button>
+    </div>
+    <div class="watchlist-content" id="watchlistItems">
+      <!-- JSで描画 -->
+    </div>
+  </div>
 </body>
 
 </html>
