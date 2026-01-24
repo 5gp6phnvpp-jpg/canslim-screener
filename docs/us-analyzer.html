@@ -3482,7 +3482,21 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       constructor() {
         this.storageKey = 'usMetrics_watchlists';
         this.lists = this.load();
+
+        // 強制マイグレーション: FANG+リストがあれば削除
+        const fangListIndex = this.lists.findIndex(l => l.id === 'wl_fang' || l.name === 'FANG+');
+        if (fangListIndex !== -1) {
+          this.lists.splice(fangListIndex, 1);
+          this.save();
+        }
+
         this.activeListId = localStorage.getItem('usMetrics_activeListId') || this.lists[0].id;
+
+        // activeListIdが有効かチェック
+        if (this.activeListId !== ALL_LIST_ID && !this.lists.find(l => l.id === this.activeListId)) {
+          this.activeListId = this.lists[0].id;
+        }
+
         this.renderPanel();
         this.updateSelect();
       }
@@ -3725,6 +3739,21 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       // 分析結果画面の「追加」ボタンのためにグローバル関数を公開
       window.addToCurrentWatchlist = (ticker) => {
         watchlistManager.addTicker(ticker);
+      };
+
+      // 一括分析画面の「追加」ボタン用
+      window.addToWatchlist = () => {
+        const input = document.getElementById('watchlistInput');
+        const val = input.value;
+        if (!val) return;
+
+        const tickers = val.split(',').map(t => t.trim().toUpperCase()).filter(t => t);
+        if (tickers.length === 0) return;
+
+        tickers.forEach(t => {
+          watchlistManager.addTicker(t);
+        });
+        input.value = '';
       };
     }
 
