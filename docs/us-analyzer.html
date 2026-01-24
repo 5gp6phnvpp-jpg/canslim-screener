@@ -1088,7 +1088,34 @@
       try {
         const prompt = buildGeminiPrompt(currentAnalysisData);
         const result = await callGeminiAPI(apiKey, prompt);
-        resultEl.innerHTML = formatGeminiResponse(result);
+
+        // ファンダメンタルズ情報の表示（AI回答の上に追加）
+        let fundamentalsHtml = '';
+        const f = currentAnalysisData.fundamentals;
+        if (f) {
+          fundamentalsHtml = `
+             <div style="margin-bottom:16px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; font-size:0.85rem;">
+               <strong>📊 取得データ (${f.source || 'Unknown'})</strong><br>
+               <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:4px;">
+                 <div>EPS成長(直近): ${f.quarterlyEarningsGrowthYOY || '-'}</div>
+                 <div>売上成長(直近): ${f.quarterlyRevenueGrowthYOY || '-'}</div>
+                 <div>機関保有率: ${f.percentInstitutions || '-'}</div>
+                 <div>PER: ${f.per || '-'}</div>
+                 <div>次回決算: ${f.nextEarningsDate || f.latestQuarter || '-'}</div>
+               </div>
+             </div>
+           `;
+        } else {
+          fundamentalsHtml = `
+             <div style="margin-bottom:16px; padding:12px; background:#fff1f2; border:1px solid #fecdd3; border-radius:8px; font-size:0.85rem; color:#be123c;">
+               ⚠️ ファンダメンタルズデータの取得に失敗しました。<br>
+               チャート分析のみを行います。<br>
+               <span style="font-size:0.75rem; color:#881337;">(Alpha VantageのAPI制限、またはデータソースへの接続エラー)</span>
+             </div>
+           `;
+        }
+
+        resultEl.innerHTML = fundamentalsHtml + formatGeminiResponse(result);
       } catch (err) {
         resultEl.innerHTML = `<span style="color: var(--danger);">❌ エラー: ${err.message}</span>`;
       } finally {
@@ -1102,14 +1129,21 @@
     function buildGeminiPrompt(data) {
       let fundamentalsText = '';
       const f = data.fundamentals;
+
       if (f) {
         fundamentalsText = `
 【ファンダメンタルズ情報】(Source: ${f.source || 'N/A'})
-- EPS成長(直近Q): ${f.quarterlyEarningsGrowthYOY || '-'} (売上成長: ${f.quarterlyRevenueGrowthYOY || '-'})
-- 機関投資家保有率: ${f.percentInstitutions || '-'} (インサイダー: ${f.percentInsiders || '-'})
-- バリュエーション: PER ${f.per || '-'}倍 / PEG ${f.peg || '-'}
-- 決算日程: 直近 ${f.latestQuarter || '-'} / 次回 ${f.nextEarningsDate || '-'}
-- アナリスト目標株価: ${f.analystTargetPrice ? '$' + f.analystTargetPrice : '-'}
+- EPS成長(直近Q): ${f.quarterlyEarningsGrowthYOY || 'N/A'} (売上成長: ${f.quarterlyRevenueGrowthYOY || 'N/A'})
+- A (EPS推移): ${f.annualEarnings ? f.annualEarnings.length + '期分データあり' : 'N/A'}
+- I (機関投資家保有率): ${f.percentInstitutions || 'N/A'} (インサイダー: ${f.percentInsiders || 'N/A'})
+- 決算日程: 直近 ${f.latestQuarter || 'N/A'} / 次回 ${f.nextEarningsDate || 'N/A'}
+- バリュエーション: PER ${f.per || 'N/A'}倍 / PEG ${f.peg || 'N/A'}
+- アナリスト目標株価: ${f.analystTargetPrice ? '$' + f.analystTargetPrice : 'N/A'}
+`;
+      } else {
+        fundamentalsText = `
+【ファンダメンタルズ情報】
+- データ取得に失敗しました。このセクションについては「データがないためチャート中心に分析します」と一言添えてください。
 `;
       }
 
