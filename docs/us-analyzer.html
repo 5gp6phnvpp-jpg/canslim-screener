@@ -3468,6 +3468,8 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
     // ========================================
     // 新規ウォッチリスト機能 (Watchlist Manager)
     // ========================================
+    const ALL_LIST_ID = 'wl_all';
+
     class WatchlistManager {
       constructor() {
         this.storageKey = 'usMetrics_watchlists';
@@ -3494,6 +3496,11 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       getActiveList() {
+        if (this.activeListId === ALL_LIST_ID) {
+          const allTickers = new Set();
+          this.lists.forEach(l => l.tickers.forEach(t => allTickers.add(t)));
+          return { id: ALL_LIST_ID, name: '★ すべて', tickers: Array.from(allTickers) };
+        }
         return this.lists.find(l => l.id === this.activeListId) || this.lists[0];
       }
 
@@ -3514,6 +3521,10 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       deleteList() {
+        if (this.activeListId === ALL_LIST_ID) {
+          alert('「すべて」リストは削除できません');
+          return;
+        }
         if (this.lists.length <= 1) {
           alert('最後のリストは削除できません');
           return;
@@ -3528,10 +3539,17 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       addTicker(ticker) {
-        const list = this.getActiveList();
-        if (list.tickers.includes(ticker)) {
-          alert('既にリストに含まれています');
-          return;
+        let list;
+        if (this.activeListId === ALL_LIST_ID) {
+          list = this.lists[0];
+          if (list.tickers.includes(ticker)) return;
+          alert(`「すべて」表示中のため、「${list.name}」に追加します`);
+        } else {
+          list = this.getActiveList();
+          if (list.tickers.includes(ticker)) {
+            alert('既にリストに含まれています');
+            return;
+          }
         }
         list.tickers.push(ticker);
         this.save();
@@ -3543,26 +3561,41 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
 
       removeTicker(ticker) {
         if (!confirm(`${ticker} をリストから削除しますか？`)) return;
-        const list = this.getActiveList();
-        list.tickers = list.tickers.filter(t => t !== ticker);
+
+        if (this.activeListId === ALL_LIST_ID) {
+          let removedCount = 0;
+          this.lists.forEach(l => {
+            if (l.tickers.includes(ticker)) {
+              l.tickers = l.tickers.filter(t => t !== ticker);
+              removedCount++;
+            }
+          });
+          if (removedCount > 0) alert(`${removedCount}箇所のリストから削除しました`);
+        } else {
+          const list = this.getActiveList();
+          list.tickers = list.tickers.filter(t => t !== ticker);
+        }
         this.save();
         this.renderPanel();
       }
 
       updateSelect() {
+        const allTickers = new Set();
+        this.lists.forEach(l => l.tickers.forEach(t => allTickers.add(t)));
+        const allCount = allTickers.size;
+
+        const allOption = `<option value="${ALL_LIST_ID}" ${this.activeListId === ALL_LIST_ID ? 'selected' : ''}>★ すべて (${allCount})</option>`;
+        const listOptions = this.lists.map(l =>
+          `<option value="${l.id}" ${l.id === this.activeListId ? 'selected' : ''}>${l.name} (${l.tickers.length})</option>`
+        ).join('');
+
+        const html = allOption + listOptions;
+
         const select = document.getElementById('watchlistSelect');
-        if (select) {
-          select.innerHTML = this.lists.map(l =>
-            `<option value="${l.id}" ${l.id === this.activeListId ? 'selected' : ''}>${l.name} (${l.tickers.length})</option>`
-          ).join('');
-        }
+        if (select) select.innerHTML = html;
 
         const sectionSelect = document.getElementById('sectionWatchlistSelect');
-        if (sectionSelect) {
-          sectionSelect.innerHTML = this.lists.map(l =>
-            `<option value="${l.id}" ${l.id === this.activeListId ? 'selected' : ''}>${l.name} (${l.tickers.length})</option>`
-          ).join('');
-        }
+        if (sectionSelect) sectionSelect.innerHTML = html;
       }
 
       renderPanel() {
@@ -3575,17 +3608,24 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
           return;
         }
 
-        container.innerHTML = list.tickers.map(ticker => `
+        container.innerHTML = list.tickers.map(ticker => {
+          let listName = list.name;
+          if (this.activeListId === ALL_LIST_ID) {
+            const belongingLists = this.lists.filter(l => l.tickers.includes(ticker)).map(l => l.name);
+            if (belongingLists.length > 0) listName = belongingLists.join(', ');
+          }
+
+          return `
           <div class="stock-item" onclick="analyzeSingleStock('${ticker}')">
              <div class="stock-info">
                <div>${ticker}</div>
-               <div>${list.name}</div>
+               <div style="font-size:0.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">${listName}</div>
              </div>
              <div class="stock-actions">
                <button onclick="event.stopPropagation(); watchlistManager.removeTicker('${ticker}')">❌</button>
              </div>
           </div>
-        `).join('');
+        `}).join('');
       }
 
       // 既存の「一括分析」セクションと同期
