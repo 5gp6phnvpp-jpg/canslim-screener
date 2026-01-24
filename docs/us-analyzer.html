@@ -3490,6 +3490,14 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
           this.save();
         }
 
+        // リストが空になった場合の復旧
+        if (this.lists.length === 0) {
+          this.lists = [
+            { id: 'wl_default', name: 'メイン', tickers: ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'], created_at: Date.now() }
+          ];
+          this.save();
+        }
+
         this.activeListId = localStorage.getItem('usMetrics_activeListId') || this.lists[0].id;
 
         // activeListIdが有効かチェック
@@ -3503,7 +3511,14 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
 
       load() {
         const saved = localStorage.getItem(this.storageKey);
-        if (saved) return JSON.parse(saved);
+        if (saved) {
+          try {
+            return JSON.parse(saved);
+          } catch (e) {
+            console.error('Failed to parse watchlist data', e);
+            // パースエラー時はデフォルトリストに戻す
+          }
+        }
         // デフォルトリスト
         return [
           { id: 'wl_default', name: 'メイン', tickers: ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'], created_at: Date.now() }
