@@ -1100,7 +1100,21 @@
 
     // Gemini用のプロンプトを構築
     function buildGeminiPrompt(data) {
+      let fundamentalsText = '';
+      const f = data.fundamentals;
+      if (f) {
+        fundamentalsText = `
+【ファンダメンタルズ情報】(Source: ${f.source || 'N/A'})
+- EPS成長(直近Q): ${f.quarterlyEarningsGrowthYOY || '-'} (売上成長: ${f.quarterlyRevenueGrowthYOY || '-'})
+- 機関投資家保有率: ${f.percentInstitutions || '-'} (インサイダー: ${f.percentInsiders || '-'})
+- バリュエーション: PER ${f.per || '-'}倍 / PEG ${f.peg || '-'}
+- 決算日程: 直近 ${f.latestQuarter || '-'} / 次回 ${f.nextEarningsDate || '-'}
+- アナリスト目標株価: ${f.analystTargetPrice ? '$' + f.analystTargetPrice : '-'}
+`;
+      }
+
       return `あなたはCANSLIMとミネルヴィニ投資法の熟練トレーダーです。以下の銘柄分析データを基に、具体的な売買戦略のアドバイスを日本語で提供してください。不確実な表現は避け、数字に基づいた明確な計画を立ててください。
+${fundamentalsText}
 
 【銘柄情報】
 - ティッカー: ${data.ticker}
@@ -1540,6 +1554,9 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         // 株価データを取得
         const data = await fetchStockData(ticker, apiKey);
 
+        // ファンダメンタルズデータを取得（エラーでも続行）
+        const fundamentals = await fetchFundamentalData(ticker, apiKey);
+
         if (!data || data.length < 50) {
           throw new Error('十分なデータが取得できませんでした。ティッカーを確認してください。');
         }
@@ -1550,7 +1567,8 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         // AI分析用にデータを保存
         currentAnalysisData = {
           ticker,
-          ...analysis
+          ...analysis,
+          fundamentals
         };
 
         // AI分析セクションを表示
@@ -1655,6 +1673,114 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       throw new Error('全てのプロキシが失敗しました');
+    }
+
+    // ファンダメンタルズデータ取得（C, A, I要素など）
+    async function fetchFundamentalData(ticker, apiKey) {
+      try {
+        // Alpha Vantage (Premium/Standard keys preferred, but try with free key)
+        // Note: OVERVIEW and EARNINGS might be limited on free tier
+        if (apiKey && apiKey !== DEMO_API_KEY) {
+          const overviewUrl = `${ALPHA_VANTAGE_BASE}?function=OVERVIEW&symbol=${ticker}&apikey=${apiKey}`;
+          const earningsUrl = `${ALPHA_VANTAGE_BASE}?function=EARNINGS&symbol=${ticker}&apikey=${apiKey}`;
+
+          const [overviewRes, earningsRes] = await Promise.allSettled([
+            fetch(overviewUrl).then(r => r.json()),
+            fetch(earningsUrl).then(r => r.json())
+          ]);
+
+          const overview = overviewRes.status === 'fulfilled' ? overviewRes.value : {};
+          const earnings = earningsRes.status === 'fulfilled' ? earningsRes.value : {};
+
+          if (overview.Symbol && earnings.symbol) {
+            return {
+              source: 'Alpha Vantage',
+              eps: overview.EPS,
+              per: overview.PERatio,
+              peg: overview.PEGRatio,
+              bookValue: overview.BookValue,
+              profitMargin: overview.ProfitMargin,
+              // C要素
+              quarterlyEarningsGrowthYOY: overview.QuarterlyEarningsGrowthYOY,
+              quarterlyRevenueGrowthYOY: overview.QuarterlyRevenueGrowthYOY,
+              // A要素
+              annualEarnings: earnings.annualEarnings, // 配列
+              // I要素
+              percentInstitutions: overview.PercentInstitutions,
+              percentInsiders: overview.PercentInsiders,
+              // 決算
+              latestQuarter: overview.LatestQuarter,
+              // その他
+              analystTargetPrice: overview.AnalystTargetPrice,
+              sharesFloat: overview.SharesFloat
+            };
+          }
+        }
+      } catch (e) {
+        console.log('Alpha Vantage fundamentals failed:', e);
+      }
+
+      // フォールバック: Yahoo Finance (Unofficial via CORS Proxy)
+      return await fetchFundamentalsFromYahoo(ticker);
+    }
+
+    async function fetchFundamentalsFromYahoo(ticker) {
+      const proxies = [
+        'https://corsproxy.io/?',
+        'https://api.allorigins.win/raw?url=',
+        'https://cors-anywhere.herokuapp.com/'
+      ];
+      // 必要なモジュール: financialData, defaultKeyStatistics, earnings, calendarEvents
+      const yahooUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=financialData,defaultKeyStatistics,earnings,calendarEvents`;
+
+      for (const proxy of proxies) {
+        try {
+          const response = await fetch(proxy + encodeURIComponent(yahooUrl));
+          if (!response.ok) continue;
+          const json = await response.json();
+          const result = json.quoteSummary?.result?.[0];
+
+          if (!result) continue;
+
+          const fin = result.financialData || {};
+          const stats = result.defaultKeyStatistics || {};
+          const earn = result.earnings || {};
+          const cal = result.calendarEvents || {};
+
+          // 四半期成長率計算 (Yahooには直接的なYOYがない場合があるためearningsから推測、あるいはfinancialDataにあるものを利用)
+          // financialData.revenueGrowth, earningsGrowth はある
+
+          return {
+            source: 'Yahoo Finance',
+            eps: stats.trailingEps?.fmt,
+            per: stats.trailingPE?.fmt || stats.forwardPE?.fmt,
+            peg: stats.pegRatio?.fmt,
+            bookValue: stats.bookValue?.fmt,
+            profitMargin: fin.profitMargins?.fmt,
+            // C要素
+            quarterlyEarningsGrowthYOY: fin.earningsGrowth?.fmt,
+            quarterlyRevenueGrowthYOY: fin.revenueGrowth?.fmt,
+            // A要素
+            annualEarnings: earn.financialsChart?.yearly?.map(y => ({
+              fiscalDateEnding: y.date,
+              reportedEPS: y.earnings?.fmt
+            })),
+            // I要素
+            percentInstitutions: stats.heldPercentInstitutions?.fmt,
+            percentInsiders: stats.heldPercentInsiders?.fmt,
+            // 決算
+            latestQuarter: null, // 明示的な最新四半期日はないが、earningsDateで次回決算がわかる
+            nextEarningsDate: cal.earnings?.earningsDate?.[0]?.fmt,
+            // その他
+            analystTargetPrice: fin.targetMeanPrice?.fmt,
+            sharesFloat: stats.floatShares?.fmt
+          };
+
+        } catch (e) {
+          console.log(`Yahoo fundamentals proxy ${proxy} failed:`, e.message);
+        }
+      }
+      return null;
     }
 
     // ========================================
