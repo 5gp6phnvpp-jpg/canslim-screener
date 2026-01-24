@@ -1755,10 +1755,80 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       // フォールバック: Yahoo Finance (Unofficial via CORS Proxy)
-      return await fetchFundamentalsFromYahoo(ticker);
+      return await fetchFundamentalsFromYahooV2(ticker);
     }
 
-    async function fetchFundamentalsFromYahoo(ticker) {
+    async function fetchFundamentalsFromYahooV2(ticker) {
+      // 試行するプロキシとメソッドのリスト
+      const attempts = [
+        { url: `https://api.allorigins.win/get?url=`, type: 'json_wrapped' }, // 安定性が高い
+        { url: `https://corsproxy.io/?`, type: 'direct' },
+        { url: `https://cors-anywhere.herokuapp.com/`, type: 'direct' }
+      ];
+
+      // 必要なモジュール: financialData, defaultKeyStatistics, earnings, calendarEvents
+      // query2を使用（query1より安定している場合がある）
+      const targetUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=financialData,defaultKeyStatistics,earnings,calendarEvents`;
+
+      for (const attempt of attempts) {
+        try {
+          const fetchUrl = attempt.url + encodeURIComponent(targetUrl);
+          const response = await fetch(fetchUrl);
+          if (!response.ok) continue;
+
+          let result;
+          if (attempt.type === 'json_wrapped') {
+            const wrapper = await response.json();
+            if (!wrapper.contents) continue;
+            const json = JSON.parse(wrapper.contents);
+            result = json.quoteSummary?.result?.[0];
+          } else {
+            const json = await response.json();
+            result = json.quoteSummary?.result?.[0];
+          }
+
+          if (!result) continue;
+
+          const fin = result.financialData || {};
+          const stats = result.defaultKeyStatistics || {};
+          const earn = result.earnings || {};
+          const cal = result.calendarEvents || {};
+
+          return {
+            source: 'Yahoo Finance',
+            eps: stats.trailingEps?.fmt,
+            per: stats.trailingPE?.fmt || stats.forwardPE?.fmt,
+            peg: stats.pegRatio?.fmt,
+            bookValue: stats.bookValue?.fmt,
+            profitMargin: fin.profitMargins?.fmt,
+            // C要素
+            quarterlyEarningsGrowthYOY: fin.earningsGrowth?.fmt,
+            quarterlyRevenueGrowthYOY: fin.revenueGrowth?.fmt,
+            // A要素
+            annualEarnings: earn.financialsChart?.yearly?.map(y => ({
+              fiscalDateEnding: y.date,
+              reportedEPS: y.earnings?.fmt
+            })),
+            // I要素
+            percentInstitutions: stats.heldPercentInstitutions?.fmt,
+            percentInsiders: stats.heldPercentInsiders?.fmt,
+            // 決算
+            latestQuarter: null,
+            nextEarningsDate: cal.earnings?.earningsDate?.[0]?.fmt,
+            // その他
+            analystTargetPrice: fin.targetMeanPrice?.fmt,
+            sharesFloat: stats.floatShares?.fmt
+          };
+
+        } catch (e) {
+          console.log(`Yahoo fundamentals proxy ${attempt.url} failed:`, e.message);
+        }
+      }
+      return null;
+    }
+
+    // 旧関数（参照されなくなる）
+    async function fetchFundamentalsFromYahoo_OLD(ticker) {
       const proxies = [
         'https://corsproxy.io/?',
         'https://api.allorigins.win/raw?url=',
