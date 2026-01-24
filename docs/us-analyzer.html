@@ -976,7 +976,7 @@
 
     // Gemini用のプロンプトを構築
     function buildGeminiPrompt(data) {
-      return `あなたは米国株投資の専門家です。以下の銘柄分析データを基に、投資判断のアドバイスを日本語で提供してください。
+      return `あなたはCANSLIMとミネルヴィニ投資法の熟練トレーダーです。以下の銘柄分析データを基に、具体的な売買戦略のアドバイスを日本語で提供してください。不確実な表現は避け、数字に基づいた明確な計画を立ててください。
 
 【銘柄情報】
 - ティッカー: ${data.ticker}
@@ -998,18 +998,30 @@ ${data.basePatterns?.patterns?.map(p => `- ${p.type}: 深さ${p.depth?.toFixed(1
 - 検出: ${data.vcp?.detected ? 'あり' : 'なし'}
 ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週レンジ: ${data.vcp.lastRange}%` : ''}
 
-【リスク管理】
-${data.riskManagement ? `- ピボット: $${data.riskManagement.pivotPoint?.toFixed(2) || 'N/A'}
-- ストップロス: $${data.riskManagement.stopLoss?.toFixed(2) || 'N/A'}
-- 買いゾーン上限: $${data.riskManagement.buyZoneTop?.toFixed(2) || 'N/A'}` : '- 情報なし'}
+【リスク管理・エントリー候補】
+- 標準ピボット: $${data.riskManagement.pivotPoint?.toFixed(2) || 'N/A'}
+- アーリーエントリー（Low Cheat等）: ${data.riskManagement.earlyEntry ? '$' + data.riskManagement.earlyEntry.toFixed(2) : 'なし'}
+- ストップロス目安: $${data.riskManagement.stopLoss?.toFixed(2) || 'N/A'}
 
-以下の観点で分析してください（各項目は簡潔に）:
+以下の構成でアドバイスしてください。抽象論ではなく「価格」を示した具体的な戦略をお願いします:
 
-1. 📊 買いタイミング評価（✅良好 / ⚠️注意 / ❌見送り）とその理由
-2. 📈 パターン品質（VCP/ベースの形状評価）
-3. ⚖️ リスク・リワード比の考察
-4. ⚡ 注意すべきポイント（1-2点）
-5. 💡 総合コメント（2-3文）`;
+### 1. 📊 買いタイミング評価
+- 判定: ✅良好 / ⚠️注意 / ❌見送り
+- 理由: （チャート形状、RS、出来高などから簡潔に）
+
+### 2. 🎯 具体的なエントリー戦略
+- **いつ買うか**: 標準ブレイクアウト($${data.riskManagement.pivotPoint?.toFixed(2)})を狙うか、アーリーエントリー(${data.riskManagement.earlyEntry ? '$' + data.riskManagement.earlyEntry.toFixed(2) : 'なし'})を狙うか
+- **買い増し(ピラミッティング)**: 追加購入すべきタイミング（例: ブレイクから+2-3%上昇時など）
+
+### 3. 🛡️ 出口戦略（エグジット）
+- **損切りライン**: 具体的な価格（通常は購入価格の-7%〜-8%、または移動平均線割れなど）
+- **利確目標**: 部分利確の目安（+20%など）と、トレーリングストップの考え方
+
+### 4. ⚖️ リスク・リワード考察
+- 現在価格からエントリーした場合のリスク対効果
+
+### 5. 💡 総合コメント
+- 最終的な投資判断のアドバイス（2-3文）`;
     }
 
     // Gemini APIを呼び出し
@@ -1644,7 +1656,7 @@ ${data.riskManagement ? `- ピボット: $${data.riskManagement.pivotPoint?.toFi
 
     function detectOriginalPivot(quotes) {
       if (quotes.length < 100) {
-        return { originalPivot: null, breakoutDate: null, breakoutDetected: false };
+        return { originalPivot: null, earlyPivot: null, breakoutDate: null, breakoutDetected: false };
       }
 
       // 過去100日間のデータを分析
@@ -1668,69 +1680,103 @@ ${data.riskManagement ? `- ピボット: $${data.riskManagement.pivotPoint?.toFi
       }
 
       if (peaks.length === 0) {
-        return { originalPivot: null, breakoutDate: null, breakoutDetected: false };
+        return { originalPivot: null, earlyPivot: null, breakoutDate: null, breakoutDetected: false };
       }
 
-      // 最も高いピーク（潜在的なピボット）を見つける
+      // 最も高いピーク（メインのピボット候補）を見つける
       const sortedPeaks = [...peaks].sort((a, b) => b.price - a.price);
+      const highestPeak = sortedPeaks[0];
+
+      // Low Cheat（低いチート）の検出
+      // 条件:
+      // 1. メインピボットより右側（新しい日付）にあること
+      // 2. メインピボットより低い位置にあること（5-15%程度下）
+      // 3. その後、小さなベース（小休止）を形成していること
+      let bestLowCheat = null;
+
+      const potentialCheats = peaks.filter(p =>
+        p.index > highestPeak.index &&
+        p.price < highestPeak.price &&
+        p.price > highestPeak.price * 0.85 // 深すぎない（ハンドルやチートの範囲）
+      );
+
+      if (potentialCheats.length > 0) {
+        // 最も右側にあるピークをLow Cheat候補とする（直近の抵抗線）
+        bestLowCheat = potentialCheats[potentialCheats.length - 1];
+      }
 
       // ブレイクアウトを検出
-      // 条件: ピークを超えて、その後価格が上昇を維持
-      for (const peak of sortedPeaks) {
-        // このピーク以降のデータを確認
-        const afterPeak = last100.slice(peak.index + 1);
+      // 今回はメインピボットとLow Cheatの両方をチェック
+      const checkBreakout = (pivotPrice) => {
+        // ピーク以降のデータを取得（indexが使えないので日付でフィルタ推奨だが簡易的に検索）
+        const pivotIndex = last100.findIndex(q => q.high === pivotPrice); // 簡易検索
+        if (pivotIndex < 0) return null;
 
-        // ブレイクアウト日を探す（ピーク価格を終値で超えた最初の日）
-        const breakoutIndex = afterPeak.findIndex(q => q.close > peak.price);
+        const afterPeak = last100.slice(pivotIndex + 1);
+        const breakoutIndex = afterPeak.findIndex(q => q.close > pivotPrice);
 
         if (breakoutIndex >= 0) {
           const breakoutDay = afterPeak[breakoutIndex];
-          const afterBreakout = afterPeak.slice(breakoutIndex);
-
-          // ブレイクアウト後に価格が維持されているか確認
           const currentPrice = quotes[quotes.length - 1].close;
-          const priceHeld = currentPrice > peak.price * 0.95;  // 5%以内の下落は許容
+          const priceHeld = currentPrice > pivotPrice * 0.95;
 
-          if (priceHeld && afterBreakout.length >= 3) {
-            // 元のピボットからの距離を計算
-            const distanceFromOriginalPivot = ((currentPrice - peak.price) / peak.price) * 100;
-
+          if (priceHeld) {
+            const distanceFromPivot = ((currentPrice - pivotPrice) / pivotPrice) * 100;
             return {
-              originalPivot: peak.price,
               breakoutDate: breakoutDay.date,
-              breakoutDetected: true,
-              daysAfterBreakout: afterBreakout.length,
-              distanceFromOriginalPivot: parseFloat(distanceFromOriginalPivot.toFixed(2)),
-              isExtendedFromOriginal: distanceFromOriginalPivot > 5,
-              isChasing: distanceFromOriginalPivot > 10,
-              buyZoneStatus: distanceFromOriginalPivot > 10
-                ? '❌ チェイス圏（+10%超、見送り推奨）'
-                : distanceFromOriginalPivot > 5
-                  ? '⚠️ 拡張中（+5%超、慎重に）'
-                  : distanceFromOriginalPivot >= 0
-                    ? '✅ バイゾーン内（ピボット〜+5%）'
-                    : '⏳ ピボット手前'
+              daysAfterBreakout: afterPeak.length - breakoutIndex,
+              distanceFromPivot,
+              isExtended: distanceFromPivot > 5,
+              isChasing: distanceFromPivot > 10
             };
           }
         }
+        return null;
+      };
+
+      const mainBreakout = checkBreakout(highestPeak.price);
+
+      // 結果を構築
+      const currentPrice = quotes[quotes.length - 1].close;
+      const distanceToMain = ((highestPeak.price - currentPrice) / currentPrice) * 100;
+
+      const result = {
+        originalPivot: highestPeak.price,
+        earlyPivot: bestLowCheat ? bestLowCheat.price : null,
+        breakoutDate: mainBreakout ? mainBreakout.breakoutDate : null,
+        breakoutDetected: !!mainBreakout,
+        distanceToPivot: parseFloat(distanceToMain.toFixed(2)),
+        // buyZoneStatus等は呼び出し元で計算
+        cheatDetails: bestLowCheat ? {
+          price: bestLowCheat.price,
+          date: bestLowCheat.date,
+          depth: ((highestPeak.price - bestLowCheat.price) / highestPeak.price * 100).toFixed(1)
+        } : null
+      };
+
+      // 距離に基づくステータス判定（メインピボット）
+      result.isApproaching = distanceToMain <= 5 && distanceToMain > 0;
+
+      if (mainBreakout) {
+        result.isExtendedFromOriginal = mainBreakout.isExtended;
+        result.isChasing = mainBreakout.isChasing;
+        result.daysAfterBreakout = mainBreakout.daysAfterBreakout;
+        result.distanceFromOriginalPivot = parseFloat(mainBreakout.distanceFromPivot.toFixed(2));
+
+        result.buyZoneStatus = mainBreakout.isChasing
+          ? '❌ チェイス圏（+10%超、見送り推奨）'
+          : mainBreakout.isExtended
+            ? '⚠️ 拡張中（+5%超、慎重に）'
+            : mainBreakout.distanceFromPivot >= 0
+              ? '✅ バイゾーン内（ピボット〜+5%）'
+              : '⏳ ピボット手前';
+      } else {
+        result.buyZoneStatus = distanceToMain <= 5 && distanceToMain > 0
+          ? '🟡 ピボット接近中（あと' + distanceToMain.toFixed(1) + '%）'
+          : '⏳ ベース形成中';
       }
 
-      // ブレイクアウトが検出されなかった場合
-      // 最高のピークをベース形成中のピボット候補として返す
-      const highestPeak = sortedPeaks[0];
-      const currentPrice = quotes[quotes.length - 1].close;
-      const distanceToPivot = ((highestPeak.price - currentPrice) / currentPrice) * 100;
-
-      return {
-        originalPivot: highestPeak.price,
-        breakoutDate: null,
-        breakoutDetected: false,
-        distanceToPivot: parseFloat(distanceToPivot.toFixed(2)),
-        isApproaching: distanceToPivot <= 5 && distanceToPivot > 0,
-        buyZoneStatus: distanceToPivot <= 5 && distanceToPivot > 0
-          ? '🟡 ピボット接近中（あと' + distanceToPivot.toFixed(1) + '%）'
-          : '⏳ ベース形成中'
-      };
+      return result;
     }
 
     // ========================================
@@ -1860,25 +1906,31 @@ ${data.riskManagement ? `- ピボット: $${data.riskManagement.pivotPoint?.toFi
 
       const patterns = [];
       let baseCount = 0;
+      let isFlatBase = false; // フラットベース検出フラグ
 
       // 52週高値
       const high52Week = Math.max(...quotes.slice(-252).map(q => q.high));
       const current = quotes[quotes.length - 1];
 
-      // 1. フラットベース検出（5週間で15%以内の調整）
-      const last25 = quotes.slice(-25);  // 5週間
-      const flatHigh = Math.max(...last25.map(q => q.high));
-      const flatLow = Math.min(...last25.map(q => q.low));
+      // 1. フラットベース検出（改善版）
+      // 条件: 5週間以上のレンジで、深さが15%以内（より浅い調整を優先）
+      const last30 = quotes.slice(-30);  // 約6週間
+      const flatHigh = Math.max(...last30.map(q => q.high));
+      const flatLow = Math.min(...last30.map(q => q.low));
       const flatRange = ((flatHigh - flatLow) / flatHigh) * 100;
 
-      if (flatRange <= 15 && current.close > flatLow * 1.02) {
+      // 過去30日間の高値が52週高値圏にあるか（20%以内）
+      const nearHigh = ((high52Week - flatHigh) / high52Week) * 100 <= 20;
+
+      if (nearHigh && flatRange <= 15 && current.close > flatLow * 1.02) {
         patterns.push({
           name: 'フラットベース',
           emoji: '📊',
-          description: `5週間のレンジ: ${flatRange.toFixed(1)}%`,
+          description: `6週間のレンジ: ${flatRange.toFixed(1)}%`,
           quality: flatRange <= 10 ? 'high' : 'medium'
         });
         baseCount++;
+        isFlatBase = true;
       }
 
       // 2. カップウィズハンドル検出（7-65週の調整、12-35%の深さ）
@@ -1905,7 +1957,8 @@ ${data.riskManagement ? `- ピボット: $${data.riskManagement.pivotPoint?.toFi
         }
       }
 
-      // 3. ダブルボトム検出
+      // 3. ダブルボトム検出（改善版）
+      // フラットベースと競合した場合、深さがないならフラットベースを優先
       const last50 = quotes.slice(-50);
       const lows = [];
       for (let i = 5; i < last50.length - 5; i++) {
@@ -1916,21 +1969,30 @@ ${data.riskManagement ? `- ピボット: $${data.riskManagement.pivotPoint?.toFi
       if (lows.length >= 2) {
         const lastTwo = lows.slice(-2);
         const lowDiff = Math.abs(lastTwo[0].low - lastTwo[1].low) / lastTwo[0].low * 100;
+
+        // 深さを計算（直近高値からの下落率）
+        const recentHigh = Math.max(...last50.slice(lastTwo[0].index, lastTwo[1].index).map(q => q.high));
+        const bottomDepth = ((recentHigh - lastTwo[0].low) / recentHigh) * 100;
+
+        // 条件: 
+        // - 底値差が5%以内
+        // - 期間が10日以上
+        // - 深さが10%以上あること（浅すぎるWはフラットベース扱い）
+        // - 既にフラットベースとして検出されていないこと（優先順位）
         if (lowDiff <= 5 && lastTwo[1].index - lastTwo[0].index >= 10) {
-          patterns.push({
-            name: 'ダブルボトム',
-            emoji: '📈',
-            description: `底値差: ${lowDiff.toFixed(1)}%`,
-            quality: lowDiff <= 3 ? 'high' : 'medium'
-          });
-          baseCount++;
+          if (!isFlatBase || bottomDepth >= 10) {
+            patterns.push({
+              name: 'ダブルボトム',
+              emoji: '📈',
+              description: `底値差: ${lowDiff.toFixed(1)}%, 深さ: ${bottomDepth.toFixed(1)}%`,
+              quality: lowDiff <= 3 ? 'high' : 'medium'
+            });
+            baseCount++;
+          }
         }
       }
 
-      // 4. VCPパターン検出（ミネルヴィニ定義準拠）
-      // - 3-4回の収縮（各収縮は前より小さい）
-      // - 出来高減少
-      // - ハイヤーロウ形成
+      // 4. VCPパターン検出
       const vcpResult = detectVCPPattern(quotes);
       if (vcpResult.isVCP) {
         patterns.push({
@@ -2041,6 +2103,13 @@ ${data.riskManagement ? `- ピボット: $${data.riskManagement.pivotPoint?.toFi
         }
       }
 
+      // アーリーエントリー（Low Cheat）の計算
+      let earlyEntry = null;
+      if (originalPivotData.earlyPivot) {
+        // Low Cheatがある場合、その高値越えをアーリーエントリーとする
+        earlyEntry = originalPivotData.earlyPivot * 1.001;
+      }
+
       // 理想的なエントリーポイント（ピボット + 0.1%）
       const idealEntry = pivotPoint * 1.001;
 
@@ -2079,6 +2148,9 @@ ${data.riskManagement ? `- ピボット: $${data.riskManagement.pivotPoint?.toFi
         pivotPoint,
         pivotType,
         idealEntry,
+        earlyEntry, // 追加
+        earlyPivot: originalPivotData.earlyPivot, // 追加
+        cheatDetails: originalPivotData.cheatDetails, // 追加
         stopLoss,
         target20,
         target25,
