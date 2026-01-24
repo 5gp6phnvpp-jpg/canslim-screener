@@ -3581,7 +3581,7 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       removeTicker(ticker) {
-        if (!confirm(`${ticker} をリストから削除しますか？`)) return;
+        // if (!confirm(`${ticker} をリストから削除しますか？`)) return;
 
         if (this.activeListId === ALL_LIST_ID) {
           let removedCount = 0;
