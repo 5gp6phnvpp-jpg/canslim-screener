@@ -817,6 +817,28 @@
       </details>
     </section>
 
+    <!-- ファンダメンタルズAPI選択（Finnhub追加） -->
+    <details class="api-settings" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+      <summary>⚡ Finnhub API設定（推奨: データ取得用）</summary>
+      <div class="api-settings-content">
+        <input type="password" id="finnhubApiKey" placeholder="Finnhub APIキー">
+        <button onclick="saveFinnhubKey()"
+          style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer;">保存</button>
+        <a href="https://finnhub.io/register" target="_blank" class="external-link" style="padding: 10px 14px;">
+          🔑 無料APIキー取得
+        </a>
+      </div>
+      <div
+        style="margin-top: 16px; padding: 16px; background: #fffbeb; border-radius: 12px; font-size: 0.9rem; color: #92400e; line-height: 1.8;">
+        <strong style="font-size: 1rem;">⚡ Finnhub APIについて</strong>
+        <hr style="margin: 12px 0; border: none; border-top: 1px solid #fde68a;">
+        Alpha Vantageでデータが取れない場合の強力な代替手段です。<br>
+        <strong>▶ メリット:</strong> 制限が緩く（1分60回）、財務データが安定して取得可能<br>
+        <strong>▶ 手順:</strong> リンクから無料登録 → API Keyをコピー → ここに貼り付け
+      </div>
+    </details>
+    </section>
+
     <!-- ウォッチリスト -->
     <section class="section">
       <details class="api-settings" id="watchlistSection">
@@ -1044,6 +1066,29 @@
     // Gemini API設定
     const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent';
     let currentAnalysisData = null; // 分析結果を保持
+
+    // Finnhub APIキーを保存
+    function saveFinnhubKey() {
+      const key = document.getElementById('finnhubApiKey').value.trim();
+      if (key) {
+        localStorage.setItem('finnhubApiKey', key);
+        alert('Finnhub APIキーを保存しました');
+      }
+    }
+
+    // ページロード時に各種APIキーを復元
+    document.addEventListener('DOMContentLoaded', () => {
+      const gKey = localStorage.getItem('geminiApiKey');
+      if (gKey) {
+        const keyInput = document.getElementById('geminiApiKey');
+        if (keyInput) keyInput.value = gKey;
+      }
+      const fKey = localStorage.getItem('finnhubApiKey');
+      if (fKey) {
+        const keyInput = document.getElementById('finnhubApiKey');
+        if (keyInput) keyInput.value = fKey;
+      }
+    });
 
     // Gemini APIキーを保存
     function saveGeminiKey() {
@@ -1711,9 +1756,8 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
 
     // ファンダメンタルズデータ取得（C, A, I要素など）
     async function fetchFundamentalData(ticker, apiKey) {
+      // 1. Alpha Vantage (Premium/Standard keys preferred, but try with free key)
       try {
-        // Alpha Vantage (Premium/Standard keys preferred, but try with free key)
-        // Note: OVERVIEW and EARNINGS might be limited on free tier
         if (apiKey && apiKey !== DEMO_API_KEY) {
           const overviewUrl = `${ALPHA_VANTAGE_BASE}?function=OVERVIEW&symbol=${ticker}&apikey=${apiKey}`;
           const earningsUrl = `${ALPHA_VANTAGE_BASE}?function=EARNINGS&symbol=${ticker}&apikey=${apiKey}`;
@@ -1734,17 +1778,12 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
               peg: overview.PEGRatio,
               bookValue: overview.BookValue,
               profitMargin: overview.ProfitMargin,
-              // C要素
               quarterlyEarningsGrowthYOY: overview.QuarterlyEarningsGrowthYOY,
               quarterlyRevenueGrowthYOY: overview.QuarterlyRevenueGrowthYOY,
-              // A要素
-              annualEarnings: earnings.annualEarnings, // 配列
-              // I要素
+              annualEarnings: earnings.annualEarnings,
               percentInstitutions: overview.PercentInstitutions,
               percentInsiders: overview.PercentInsiders,
-              // 決算
               latestQuarter: overview.LatestQuarter,
-              // その他
               analystTargetPrice: overview.AnalystTargetPrice,
               sharesFloat: overview.SharesFloat
             };
@@ -1754,7 +1793,43 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         console.log('Alpha Vantage fundamentals failed:', e);
       }
 
-      // フォールバック: Yahoo Finance (Unofficial via CORS Proxy)
+      // 2. Finnhub (APIキーがある場合のみ)
+      const finnhubKey = localStorage.getItem('finnhubApiKey');
+      if (finnhubKey) {
+        try {
+          const metricsUrl = `https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${finnhubKey}`;
+          const response = await fetch(metricsUrl);
+          const json = await response.json();
+          const m = json.metric;
+
+          if (m) {
+            return {
+              source: 'Finnhub',
+              eps: m.epsTTM,
+              per: m.peTTM,
+              // C要素: 四半期成長率
+              quarterlyEarningsGrowthYOY: m.epsGrowthQuarterlyYoy ? m.epsGrowthQuarterlyYoy.toFixed(2) + '%' : null,
+              quarterlyRevenueGrowthYOY: m.revenueGrowthQuarterlyYoy ? m.revenueGrowthQuarterlyYoy.toFixed(2) + '%' : null,
+              // その他
+              beta: m.beta,
+              bookValue: m.bookValuePerShareAnnual,
+              roi: m.roiTTM,
+
+              // Finnhub無料版ではA要素(Annual Earnings)やI要素(Institutions)は取れない場合が多い
+              annualEarnings: null,
+              percentInstitutions: null,
+              percentInsiders: null,
+              latestQuarter: null,
+              analystTargetPrice: null
+            };
+          }
+        } catch (e) {
+          console.log('Finnhub failed:', e);
+        }
+      }
+
+      // 3. フォールバック: Yahoo Finance (Unofficial via CORS Proxy)
+      // V2関数を使用
       return await fetchFundamentalsFromYahooV2(ticker);
     }
 
