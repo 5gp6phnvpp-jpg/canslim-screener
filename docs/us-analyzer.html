@@ -822,6 +822,17 @@
       <details class="api-settings" id="watchlistSection">
         <summary>📋 ウォッチリスト（一括分析）</summary>
         <div style="padding: 16px;">
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.8rem; color: var(--text-secondary); display:block; margin-bottom:4px;">📋
+              リスト選択</label>
+            <div style="display: flex; gap: 8px;">
+              <select id="sectionWatchlistSelect"
+                style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; background: white; cursor: pointer;"></select>
+              <button onclick="watchlistManager.createList(prompt('新しいリスト名:'))"
+                style="padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: white; cursor: pointer;"
+                title="新規リスト作成">＋</button>
+            </div>
+          </div>
           <div style="display: flex; gap: 8px; margin-bottom: 12px;">
             <input type="text" id="watchlistInput" placeholder="銘柄を追加（例: AAPL, MSFT, NVDA）"
               style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;">
@@ -3323,7 +3334,7 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
             RS: <span style="font-weight: 600; color: ${result.rsRating >= 80 ? '#10b981' : result.rsRating >= 0 ? '#64748b' : '#ef4444'};">${result.rsRating?.toFixed(1) || '-'}%</span>
           </div>
           <div style="font-size: 0.8rem;">
-            合格: <span style="font-weight: 600;">${result.passCount}/6</span>
+            合格: <span style="font-weight: 600;">${result.passCount}/8</span>
           </div>
           ${result.vcpDetected ? '<span style="background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">📐 VCP</span>' : ''}
           ${result.buyZone ? '<span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">✅ Buy Zone</span>' : ''}
@@ -3479,6 +3490,7 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       save() {
         localStorage.setItem(this.storageKey, JSON.stringify(this.lists));
         localStorage.setItem('usMetrics_activeListId', this.activeListId);
+        if (this.syncToLegacyUI) this.syncToLegacyUI();
       }
 
       getActiveList() {
@@ -3539,10 +3551,18 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
 
       updateSelect() {
         const select = document.getElementById('watchlistSelect');
-        if (!select) return;
-        select.innerHTML = this.lists.map(l =>
-          `<option value="${l.id}" ${l.id === this.activeListId ? 'selected' : ''}>${l.name} (${l.tickers.length})</option>`
-        ).join('');
+        if (select) {
+          select.innerHTML = this.lists.map(l =>
+            `<option value="${l.id}" ${l.id === this.activeListId ? 'selected' : ''}>${l.name} (${l.tickers.length})</option>`
+          ).join('');
+        }
+
+        const sectionSelect = document.getElementById('sectionWatchlistSelect');
+        if (sectionSelect) {
+          sectionSelect.innerHTML = this.lists.map(l =>
+            `<option value="${l.id}" ${l.id === this.activeListId ? 'selected' : ''}>${l.name} (${l.tickers.length})</option>`
+          ).join('');
+        }
       }
 
       renderPanel() {
@@ -3566,6 +3586,30 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
              </div>
           </div>
         `).join('');
+      }
+
+      // 既存の「一括分析」セクションと同期
+      syncToLegacyUI() {
+        const list = this.getActiveList();
+        const table = document.getElementById('watchlistTable');
+        const countEl = document.getElementById('watchlistCount');
+
+        // グローバル変数 watchlist を更新
+        if (typeof watchlist !== 'undefined') {
+          watchlist.length = 0;
+          list.tickers.forEach(t => watchlist.push(t));
+        }
+
+        if (countEl) countEl.textContent = list.tickers.length;
+
+        if (table) {
+          table.innerHTML = list.tickers.map(ticker => `
+            <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem;">
+              <span style="font-weight: 600;">${ticker}</span>
+              <button onclick="watchlistManager.removeTicker('${ticker}')" style="background: none; border: none; color: #ef4444; cursor: pointer; margin-left: 4px;">×</button>
+            </div>
+          `).join('');
+        }
       }
     }
 
