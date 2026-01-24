@@ -2455,26 +2455,137 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         document.getElementById('trendTemplate').innerHTML = templateHtml;
       }
 
-      // 4ステージ分類の表示（以下略）
+      // 4ステージ分類の表示（トレンドテンプレートセクションの上に追加）
       if (analysis.trendTemplate && analysis.trendTemplate.stage) {
-        // ... (省略)
         const tt = analysis.trendTemplate;
-        // ...
+        const stageColors = {
+          1: '#94a3b8', // グレー
+          2: '#10b981', // グリーン
+          3: '#f59e0b', // オレンジ
+          4: '#ef4444'  // レッド
+        };
         const stageHtml = `
-           <div style="margin-bottom: 24px; padding: 20px; background: linear-gradient(135deg, ${stageColors[tt.stage]}15, ${stageColors[tt.stage]}05); border: 2px solid ${stageColors[tt.stage]}; border-radius: 16px;">
-             <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-               <div style="font-size: 3rem; font-weight: 700; color: ${stageColors[tt.stage]};">${tt.stage}</div>
-               <div>
-                 <div style="font-size: 1.2rem; font-weight: 600; color: ${stageColors[tt.stage]};">${tt.stageDescription}</div>
-                 <div style="font-size: 0.95rem; color: var(--text-secondary); margin-top: 4px;">${tt.stageAdvice}</div>
-               </div>
-             </div>
-           </div>
-         `;
+          <div style="margin-bottom: 24px; padding: 20px; background: linear-gradient(135deg, ${stageColors[tt.stage]}15, ${stageColors[tt.stage]}05); border: 2px solid ${stageColors[tt.stage]}; border-radius: 16px;">
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+              <div style="font-size: 3rem; font-weight: 700; color: ${stageColors[tt.stage]};">${tt.stage}</div>
+              <div>
+                <div style="font-size: 1.2rem; font-weight: 600; color: ${stageColors[tt.stage]};">${tt.stageDescription}</div>
+                <div style="font-size: 0.95rem; color: var(--text-secondary); margin-top: 4px;">${tt.stageAdvice}</div>
+              </div>
+            </div>
+          </div>
+        `;
         document.getElementById('trendTemplate').insertAdjacentHTML('afterbegin', stageHtml);
       }
 
-      // ... (省略)
+      // ベースパターン表示
+      if (analysis.basePatterns) {
+        const bp = analysis.basePatterns;
+        let basePatternsHtml = '';
+
+        if (bp.patterns.length === 0) {
+          basePatternsHtml = `
+            <div style="padding: 16px; background: var(--bg-accent); border-radius: 10px; text-align: center;">
+              <span style="color: var(--text-muted);">📭 検出されたベースパターンはありません</span>
+            </div>
+          `;
+        } else {
+          basePatternsHtml = `
+            <div style="margin-bottom: 12px; padding: 12px; background: linear-gradient(135deg, #3b82f615, #3b82f605); border: 1px solid #3b82f6; border-radius: 10px;">
+              <span style="font-weight: 600;">🔢 ベースカウント: ${bp.baseCount}</span>
+              ${bp.hasHighQuality ? '<span style="margin-left: 12px;" class="badge pass">⭐ 高品質パターンあり</span>' : ''}
+            </div>
+            <div class="metrics-grid">
+              ${bp.patterns.map(p => `
+                <div class="metric-card" style="border-left: 3px solid ${p.quality === 'high' ? '#10b981' : '#f59e0b'};">
+                  <div class="label">${p.emoji} ${p.name}</div>
+                  <div class="value" style="font-size: 0.9rem;">${p.description}</div>
+                  <div class="badge ${p.quality === 'high' ? 'pass' : 'warning'}" style="margin-top: 4px; font-size: 0.65rem;">
+                    ${p.quality === 'high' ? '★ 高品質' : '○ 中品質'}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+        document.getElementById('basePatterns').innerHTML = basePatternsHtml;
+      }
+
+      // リスク管理表示
+      if (analysis.riskManagement) {
+        const rm = analysis.riskManagement;
+        const rrColor = parseFloat(rm.riskRewardRatio) >= 3 ? '#10b981' :
+          parseFloat(rm.riskRewardRatio) >= 2 ? '#f59e0b' : '#ef4444';
+
+        // 元のピボット情報（ブレイクアウト済みの場合）
+        let originalPivotHtml = '';
+        if (rm.originalPivotStatus) {
+          const ops = rm.originalPivotStatus;
+          const chasingColor = ops.isChasing ? '#ef4444' : ops.isExtendedFromOriginal ? '#f59e0b' : '#10b981';
+          originalPivotHtml = `
+            <div style="margin-bottom: 16px; padding: 16px; background: linear-gradient(135deg, ${chasingColor}15, ${chasingColor}05); border: 2px solid ${chasingColor}; border-radius: 12px;">
+              <div style="font-size: 1.1rem; font-weight: 600; color: ${chasingColor}; margin-bottom: 8px;">
+                ${ops.buyZoneStatus}
+              </div>
+              <div class="metrics-grid" style="gap: 8px;">
+                <div style="background: white; padding: 10px; border-radius: 8px;">
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">元のピボット</div>
+                  <div style="font-weight: 600;">$${ops.originalPivot.toFixed(2)}</div>
+                </div>
+                <div style="background: white; padding: 10px; border-radius: 8px;">
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">ピボットからの距離</div>
+                  <div style="font-weight: 600; color: ${chasingColor};">+${ops.distanceFromOriginalPivot.toFixed(1)}%</div>
+                </div>
+                <div style="background: white; padding: 10px; border-radius: 8px;">
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">ブレイクアウト後</div>
+                  <div style="font-weight: 600;">${ops.daysAfterBreakout}日</div>
+                </div>
+              </div>
+              ${ops.isChasing ? '<div style="margin-top: 8px; font-size: 0.85rem; color: #ef4444;">⚠️ 元のエントリーポイントから10%以上離れています。次のベース形成を待つことを推奨します。</div>' : ''}
+            </div>
+          `;
+        }
+
+        const riskHtml = `
+          ${originalPivotHtml}
+          <div style="margin-bottom: 16px; padding: 16px; background: ${rm.isInBuyZone ? '#dcfce7' : rm.isExtended ? '#fef3c7' : '#f1f5f9'}; border-radius: 12px; text-align: center;">
+            <span style="font-size: 1.2rem; font-weight: 600;">${rm.buyZoneStatus}</span>
+            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">
+              ピボットから: ${rm.distanceFromPivot}%
+            </div>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card" title="ベースパターンに基づく買いポイント。この価格を上回ってブレイクアウトした時がエントリーポイント">
+              <div class="label">📍 ピボット (${rm.pivotType})</div>
+              <div class="value" style="font-size: 1rem;">$${rm.pivotPoint.toFixed(2)}</div>
+            </div>
+            <div class="metric-card" title="ピボットポイント+0.1%。ブレイクアウト直後の理想的なエントリー価格">
+              <div class="label">🎯 理想エントリー</div>
+              <div class="value positive" style="font-size: 1rem;">$${rm.idealEntry.toFixed(2)}</div>
+            </div>
+            <div class="metric-card" title="ピボットから-7%。損切りライン（オニールルール）">
+              <div class="label">🛑 ストップロス</div>
+              <div class="value negative" style="font-size: 1rem;">$${rm.stopLoss.toFixed(2)}</div>
+              <div style="font-size: 0.6rem; color: var(--text-muted);">リスク: $${rm.risk}</div>
+            </div>
+            <div class="metric-card" title="ピボットから+20%上昇した利益確定目標">
+              <div class="label">💰 目標 (+20%)</div>
+              <div class="value positive" style="font-size: 1rem;">$${rm.target20.toFixed(2)}</div>
+              <div style="font-size: 0.6rem; color: var(--text-muted);">リワード: $${rm.reward}</div>
+            </div>
+            <div class="metric-card" title="ピボットから+25%上昇した利益確定目標">
+              <div class="label">💎 目標 (+25%)</div>
+              <div class="value positive" style="font-size: 1rem;">$${rm.target25.toFixed(2)}</div>
+            </div>
+            <div class="metric-card" title="(目標-現在価格)÷(現在価格-ストップロス)。現在価格でエントリーした場合のリスクリワード">
+              <div class="label">📊 リスクリワード比</div>
+              <div class="value" style="font-size: 1rem; color: ${rrColor};">${rm.riskRewardRatio}:1</div>
+              <div style="font-size: 0.65rem; color: var(--text-muted);">${parseFloat(rm.riskRewardRatio) >= 3 ? '🟢 優秀' : parseFloat(rm.riskRewardRatio) >= 2 ? '🟡 良好' : parseFloat(rm.riskRewardRatio) < 0 ? '⛔ 損切り以下' : '🔴 要検討'}</div>
+            </div>
+          </div>
+        `;
+        document.getElementById('riskManagement').innerHTML = riskHtml;
+      }
 
       // チャート描画
       drawPriceChart(quotes);
