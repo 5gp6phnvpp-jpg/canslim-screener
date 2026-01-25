@@ -4522,11 +4522,35 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       async fetchGists() {
-        const res = await fetch('https://api.github.com/gists', {
+        // キャッシュ回避のためにタイムスタンプ付与
+        const res = await fetch(`https://api.github.com/gists?t=${Date.now()}`, {
           headers: { 'Authorization': `token ${this.pat}` }
         });
         if (!res.ok) throw new Error('Gist一覧の取得に失敗しました');
         return await res.json();
+      }
+
+      async refreshGistId() {
+        try {
+          const gists = await this.fetchGists();
+          // 更新日時(updated_at)の降順でソート
+          const targetGist = gists
+            .filter(g => g.files[this.filename])
+            .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
+
+          if (targetGist) {
+            if (this.gistId !== targetGist.id) {
+              console.log(`Gist ID updated: ${this.gistId} -> ${targetGist.id}`);
+              this.gistId = targetGist.id;
+              localStorage.setItem('gistId', this.gistId);
+            }
+            return true;
+          }
+          return false;
+        } catch (e) {
+          console.error("Gist ID refresh failed:", e);
+          return false;
+        }
       }
 
       async createGist() {
@@ -4565,65 +4589,15 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         };
       }
 
-      async upload() {
-        if (!this.pat) return alert('連携設定が完了していません');
-
-        // 最新の状態を強制保存
-        if (typeof watchlistManager !== 'undefined') {
-          watchlistManager.save();
-        }
-
-        const content = this.createBackupData();
-        const listCount = content.watchlist ? content.watchlist.length : 0;
-        const totalTickers = content.watchlist ? content.watchlist.reduce((sum, list) => sum + list.tickers.length, 0) : 0;
-
-        if (!confirm(`現在の設定でクラウドを上書きしますか？\n\n・リスト数: ${listCount}\n・総銘柄数: ${totalTickers}\n\n（スマホ側ではこのデータがダウンロードされます）`)) return;
-
-        try {
-          // Gist IDがない場合は新規作成
-          if (!this.gistId) {
-            await this.createGist();
-            alert('✅ 新規設定ファイルを作成し、設定を保存しました');
-            this.updateStatus();
-            return;
-          }
-
-          const res = await fetch(`https://api.github.com/gists/${this.gistId}`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `token ${this.pat}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              files: {
-                [this.filename]: { content: JSON.stringify(content, null, 2) }
-              }
-            })
-          });
-
-          // Gistが見つからない場合（削除されていた場合）は新規作成
-          if (res.status === 404) {
-            console.log('Gist not found, creating new one...');
-            localStorage.removeItem('gistId');
-            this.gistId = null;
-            await this.createGist();
-            alert('✅ 設定ファイルを再作成し、設定を保存しました');
-            this.updateStatus();
-            return;
-          }
-
-          if (!res.ok) throw new Error('アップロード失敗');
-          alert('✅ 設定をクラウドに保存しました');
-          this.updateStatus();
-        } catch (e) {
-          alert('アップロード中にエラーが発生しました: ' + e.message);
-        }
-      }
-
       async download() {
-        if (!this.gistId || !this.pat) return alert('連携設定が完了していません。先に「連携開始」を実行してください。');
+        if (!this.pat) return alert('連携設定が完了していません。先に「連携開始」を実行してください。');
 
-        if (!confirm(`クラウドの設定（Gist ID: ${this.gistId ? this.gistId.substring(0, 6) : '不明'}...）で現在の設定を上書きしますか？\n（現在のローカル設定は失われます）`)) return;
+        // ダウンロード前に必ず最新のGist IDを確認して更新する
+        await this.refreshGistId();
+
+        if (!this.gistId) return alert('同期する設定ファイルが見つかりません。先に「設定をアップロード」してください。');
+
+        if (!confirm(`クラウドの設定（Gist ID: ${this.gistId.substring(0, 6)}...）で現在の設定を上書きしますか？\n（現在のローカル設定は失われます）`)) return;
 
         try {
           // キャッシュ回避のためにタイムスタンプを追加
