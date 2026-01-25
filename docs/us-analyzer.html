@@ -4597,7 +4597,7 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
 
       createBackupData() {
         // セキュリティ対策: APIキーはGistに保存しない
-        // ウォッチリスト、自動分析設定、一括分析結果、メモを同期
+        // ウォッチリスト、自動分析設定、一括分析結果、メモ、AI履歴を同期
         return {
           updatedAt: new Date().toISOString(),
           settings: {
@@ -4606,9 +4606,11 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
           },
           watchlist: JSON.parse(localStorage.getItem('usMetrics_watchlists') || '[]'),
           activeListId: localStorage.getItem('usMetrics_activeListId'),
-          // 新規追加: 分析データ
+          // 分析データ
           batchResults: JSON.parse(localStorage.getItem('batchResults') || 'null'),
-          tickerNotes: JSON.parse(localStorage.getItem('tickerNotes') || '{}')
+          tickerNotes: JSON.parse(localStorage.getItem('tickerNotes') || '{}'),
+          // AI履歴
+          aiHistory: JSON.parse(localStorage.getItem('aiAnalysisHistory') || '[]')
         };
       }
 
@@ -4625,8 +4627,9 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         const totalTickers = content.watchlist ? content.watchlist.reduce((sum, list) => sum + list.tickers.length, 0) : 0;
         const resultCount = content.batchResults && content.batchResults.results ? content.batchResults.results.length : 0;
         const noteCount = Object.keys(content.tickerNotes || {}).length;
+        const aiHistoryCount = content.aiHistory ? content.aiHistory.length : 0;
 
-        if (!confirm(`現在の設定でクラウドを上書きしますか？\n\n・リスト数: ${listCount}\n・総銘柄数: ${totalTickers}\n・分析結果: ${resultCount}件\n・メモ: ${noteCount}件\n\n（スマホ側ではこのデータがダウンロードされます）`)) return;
+        if (!confirm(`現在の設定でクラウドを上書きしますか？\n\n・リスト数: ${listCount}\n・総銘柄数: ${totalTickers}\n・分析結果: ${resultCount}件\n・メモ: ${noteCount}件\n・AI分析履歴: ${aiHistoryCount}件\n\n（スマホ側ではこのデータがダウンロードされます）`)) return;
 
         try {
           // Gist IDがない場合は新規作成
@@ -4715,8 +4718,9 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
 
           const listCount = data.watchlist ? data.watchlist.length : 0;
           const resultCount = data.batchResults && data.batchResults.results ? data.batchResults.results.length : 0;
+          const aiHistoryCount = data.aiHistory ? data.aiHistory.length : 0;
 
-          alert(`✅ 設定を復元しました！\n\n・リスト数: ${listCount}\n・分析結果: ${resultCount}件\n\n画面を更新します。`);
+          alert(`✅ 設定を復元しました！\n\n・リスト数: ${listCount}\n・分析結果: ${resultCount}件\n・AI分析履歴: ${aiHistoryCount}件\n\n画面を更新します。`);
 
           // キャッシュ回避のためにパラメータ付きでリロード
           const url = new URL(window.location.href);
@@ -4744,6 +4748,10 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         }
         if (data.tickerNotes) {
           localStorage.setItem('tickerNotes', JSON.stringify(data.tickerNotes));
+        }
+        // AI履歴の復元
+        if (data.aiHistory) {
+          localStorage.setItem('aiAnalysisHistory', JSON.stringify(data.aiHistory));
         }
       }
 
