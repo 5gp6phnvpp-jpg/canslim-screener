@@ -1746,22 +1746,38 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       sortBatchResults();
     }
 
-    // 株価データ取得（Alpha Vantage → Yahoo Financeフォールバック）
+    // 株価データ取得（Alpha Vantage → Finnhub → Yahoo Financeフォールバック）
     async function fetchStockData(ticker, apiKey) {
+      // 1. Alpha Vantageを試す
       try {
-        // Alpha Vantageを試す
         const data = await fetchFromAlphaVantage(ticker, apiKey);
         if (data && data.length >= 50) return data;
       } catch (e) {
-        console.log('Alpha Vantage failed, trying Yahoo Finance...', e);
+        console.log('Alpha Vantage failed:', e.message);
+
+        // レート制限の場合はFinnhubにフォールバック
+        if (e.message.includes('API制限') || e.message.includes('rate limit')) {
+          console.log('Rate limit detected, trying Finnhub...');
+        }
       }
 
-      // Yahoo Financeフォールバック（CORSプロキシ経由）
+      // 2. Finnhubを試す（レート制限60回/分と高性能）
+      const finnhubKey = localStorage.getItem('finnhubApiKey');
+      if (finnhubKey) {
+        try {
+          const data = await fetchFromFinnhub(ticker, finnhubKey);
+          if (data && data.length >= 50) return data;
+        } catch (e) {
+          console.log('Finnhub failed:', e.message);
+        }
+      }
+
+      // 3. Yahoo Financeフォールバック（CORSプロキシ経由）
       try {
         const data = await fetchFromYahooProxy(ticker);
         if (data && data.length >= 50) return data;
       } catch (e) {
-        console.log('Yahoo Finance also failed', e);
+        console.log('Yahoo Finance also failed:', e.message);
       }
 
       throw new Error('データの取得に失敗しました。しばらく待ってから再試行してください。');
@@ -1790,6 +1806,38 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         }))
         .sort((a, b) => a.date - b.date);
 
+      return quotes;
+    }
+
+    // Finnhub API（バックアップ用 - レート制限60回/分）
+    async function fetchFromFinnhub(ticker, apiKey) {
+      const endDate = Math.floor(Date.now() / 1000);
+      const startDate = endDate - (365 * 2 * 24 * 60 * 60); // 2年分
+
+      const url = `https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${startDate}&to=${endDate}&token=${apiKey}`;
+
+      const response = await fetch(url);
+      const json = await response.json();
+
+      if (json.s === 'no_data' || !json.c) {
+        throw new Error('データが見つかりません');
+      }
+
+      if (json.error) {
+        throw new Error(json.error);
+      }
+
+      // Finnhubのレスポンス形式: c(終値), h(高値), l(安値), o(始値), v(出来高), t(タイムスタンプ)
+      const quotes = json.t.map((timestamp, i) => ({
+        date: new Date(timestamp * 1000),
+        open: json.o[i],
+        high: json.h[i],
+        low: json.l[i],
+        close: json.c[i],
+        volume: json.v[i]
+      })).filter(q => q.close !== null && !isNaN(q.close));
+
+      console.log(`Finnhub: Got ${quotes.length} quotes for ${ticker}`);
       return quotes;
     }
 
