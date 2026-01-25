@@ -4341,12 +4341,12 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       createBackupData() {
+        // セキュリティ対策: APIキーはGistに保存しない
+        // ウォッチリストと自動分析設定のみを同期
         return {
           updatedAt: new Date().toISOString(),
           settings: {
-            alphaVantageKey: localStorage.getItem('alphaVantageKey'),
-            finnhubApiKey: localStorage.getItem('finnhubApiKey'),
-            geminiApiKey: localStorage.getItem('geminiApiKey'),
+            // APIキーは含めない（セキュリティのため）
             autoAnalyze: localStorage.getItem('autoAnalyzeSchedule')
           },
           watchlist: JSON.parse(localStorage.getItem('usMetrics_watchlists') || '[]'),
@@ -4438,10 +4438,8 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       restoreData(data) {
+        // セキュリティ対策: APIキーは復元しない（Gistに保存されていないため）
         if (data.settings) {
-          if (data.settings.alphaVantageKey) localStorage.setItem('alphaVantageKey', data.settings.alphaVantageKey);
-          if (data.settings.finnhubApiKey) localStorage.setItem('finnhubApiKey', data.settings.finnhubApiKey);
-          if (data.settings.geminiApiKey) localStorage.setItem('geminiApiKey', data.settings.geminiApiKey);
           if (data.settings.autoAnalyze) localStorage.setItem('autoAnalyzeSchedule', data.settings.autoAnalyze);
         }
         if (data.watchlist) {
