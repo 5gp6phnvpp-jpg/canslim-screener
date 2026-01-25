@@ -1086,6 +1086,24 @@
         <div id="aiAnalysisResult"
           style="padding: 16px; background: linear-gradient(135deg, #faf5ff, #f3e8ff); border-radius: 12px; line-height: 1.8; white-space: pre-wrap;">
         </div>
+
+        <!-- AI分析履歴（クリックで展開） -->
+        <details style="margin-top: 16px;">
+          <summary
+            style="cursor: pointer; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 600; color: #475569; user-select: none;">
+            📚 AI分析履歴（クリックで展開）
+            <span id="aiHistoryCount" style="font-weight: normal; color: #94a3b8; margin-left: 8px;">0件</span>
+          </summary>
+          <div id="aiHistoryContainer"
+            style="margin-top: 8px; max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <div id="aiHistoryList" style="padding: 8px;"></div>
+          </div>
+          <div style="margin-top: 8px; text-align: right;">
+            <button onclick="clearAIHistory()"
+              style="padding: 4px 12px; font-size: 0.75rem; background: #fff; border: 1px solid #fecaca; color: #dc2626; border-radius: 4px; cursor: pointer;">🗑
+              履歴をクリア</button>
+          </div>
+        </details>
       </section>
     </div>
 
@@ -1139,6 +1157,92 @@
         alert('Gemini APIキーを保存しました');
       }
     }
+
+    // ========================================
+    // AI分析履歴管理
+    // ========================================
+    const AI_HISTORY_KEY = 'aiAnalysisHistory';
+    const MAX_HISTORY_ITEMS = 20; // 最大保存件数
+
+    // AI分析結果を履歴に保存
+    function saveAIAnalysisHistory(ticker, htmlContent) {
+      const history = JSON.parse(localStorage.getItem(AI_HISTORY_KEY) || '[]');
+
+      // 新しい履歴項目を作成
+      const newItem = {
+        ticker: ticker,
+        timestamp: new Date().toISOString(),
+        content: htmlContent
+      };
+
+      // 同じ銘柄の古い履歴を削除（最新のみ保持）
+      const filteredHistory = history.filter(item => item.ticker !== ticker);
+
+      // 新しい項目を先頭に追加
+      filteredHistory.unshift(newItem);
+
+      // 最大件数を超えた場合は古いものを削除
+      if (filteredHistory.length > MAX_HISTORY_ITEMS) {
+        filteredHistory.pop();
+      }
+
+      localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(filteredHistory));
+      renderAIHistoryList();
+    }
+
+    // AI分析履歴を表示
+    function renderAIHistoryList() {
+      const history = JSON.parse(localStorage.getItem(AI_HISTORY_KEY) || '[]');
+      const listEl = document.getElementById('aiHistoryList');
+      const countEl = document.getElementById('aiHistoryCount');
+
+      if (!listEl) return;
+
+      if (countEl) countEl.textContent = `${history.length}件`;
+
+      if (history.length === 0) {
+        listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8;">履歴がありません</div>';
+        return;
+      }
+
+      listEl.innerHTML = history.map((item, index) => {
+        const date = new Date(item.timestamp);
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+        return `
+          <details style="margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <summary style="cursor: pointer; padding: 10px 12px; background: #f8fafc; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.1em;">${item.ticker}</span>
+              <span style="font-size: 0.75rem; color: #94a3b8; font-weight: normal;">${dateStr}</span>
+              <button onclick="event.stopPropagation(); deleteAIHistoryItem(${index})" style="margin-left: auto; padding: 2px 8px; font-size: 0.7rem; background: #fff; border: 1px solid #fecaca; color: #dc2626; border-radius: 4px; cursor: pointer;">削除</button>
+            </summary>
+            <div style="padding: 12px; background: linear-gradient(135deg, #faf5ff, #f3e8ff); line-height: 1.6; font-size: 0.9rem; white-space: pre-wrap; max-height: 300px; overflow-y: auto;">
+              ${item.content}
+            </div>
+          </details>
+        `;
+      }).join('');
+    }
+
+    // 個別の履歴項目を削除
+    function deleteAIHistoryItem(index) {
+      const history = JSON.parse(localStorage.getItem(AI_HISTORY_KEY) || '[]');
+      history.splice(index, 1);
+      localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(history));
+      renderAIHistoryList();
+    }
+
+    // 全履歴をクリア
+    function clearAIHistory() {
+      if (!confirm('AI分析履歴をすべて削除しますか？')) return;
+      localStorage.removeItem(AI_HISTORY_KEY);
+      renderAIHistoryList();
+    }
+
+    // ページロード時に履歴を表示
+    document.addEventListener('DOMContentLoaded', () => {
+      renderAIHistoryList();
+    });
 
     // ページロード時にGemini APIキーを復元
     const savedGeminiKey = localStorage.getItem('geminiApiKey');
@@ -1202,6 +1306,9 @@
         }
 
         resultEl.innerHTML = fundamentalsHtml + formatGeminiResponse(result);
+
+        // AI分析結果を履歴に保存
+        saveAIAnalysisHistory(currentAnalysisData.ticker, resultEl.innerHTML);
       } catch (err) {
         resultEl.innerHTML = `<span style="color: var(--danger);">❌ エラー: ${err.message}</span>`;
       } finally {
@@ -3518,11 +3625,19 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
                 modifierKey: null,
                 threshold: 1,
                 onPanStart: () => true,
+                onPanComplete: function ({ chart }) {
+                  // 株価チャートにも同じパンを適用
+                  syncVolumeToPrice(chart);
+                }
               },
               zoom: {
-                wheel: { enabled: true, speed: 0.1 },
+                wheel: { enabled: true, speed: 0.1, modifierKey: 'ctrl' },
                 pinch: { enabled: true },
-                mode: 'x'
+                mode: 'x',
+                onZoomComplete: function ({ chart }) {
+                  // 株価チャートにも同じズームを適用
+                  syncVolumeToPrice(chart);
+                }
               }
             }
           },
@@ -3572,6 +3687,25 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         volumeChartInstance.update('none');
       } catch (e) {
         console.log('Sync error:', e);
+      }
+    }
+
+    // 出来高チャートのズーム/パンを株価チャートに同期
+    function syncVolumeToPrice(volumeChart) {
+      if (!priceChartInstance || !volumeChart) return;
+
+      try {
+        // 出来高チャートのX軸範囲を取得
+        const xScale = volumeChart.scales.x;
+        const min = xScale.min;
+        const max = xScale.max;
+
+        // 株価チャートに同じ範囲を適用
+        priceChartInstance.options.scales.x.min = min;
+        priceChartInstance.options.scales.x.max = max;
+        priceChartInstance.update('none');
+      } catch (e) {
+        console.log('Volume sync error:', e);
       }
     }
 
