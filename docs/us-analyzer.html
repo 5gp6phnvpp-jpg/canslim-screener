@@ -4624,8 +4624,12 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         if (!confirm('クラウドの設定で現在の設定を上書きしますか？\n（現在のローカル設定は失われます）')) return;
 
         try {
-          const res = await fetch(`https://api.github.com/gists/${this.gistId}`, {
-            headers: { 'Authorization': `token ${this.pat}` }
+          // キャッシュ回避のためにタイムスタンプを追加
+          const res = await fetch(`https://api.github.com/gists/${this.gistId}?timestamp=${Date.now()}`, {
+            headers: {
+              'Authorization': `token ${this.pat}`,
+              'Cache-Control': 'no-cache'
+            }
           });
 
           // Gistが見つからない場合（削除されていた場合）
