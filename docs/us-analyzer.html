@@ -4494,14 +4494,16 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         btn.textContent = '連携中...';
 
         try {
-          // 既存のGistを探す
+          // 既存のGistを探す（更新日時が新しい順にソートして最新を使用）
           const gists = await this.fetchGists();
-          const targetGist = gists.find(g => g.files[this.filename]);
+          const targetGist = gists
+            .filter(g => g.files[this.filename])
+            .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
 
           if (targetGist) {
             this.gistId = targetGist.id;
             localStorage.setItem('gistId', this.gistId);
-            alert('既存の設定ファイルが見つかりました。同期可能です。');
+            alert(`✅ 既存の設定ファイルが見つかりました。\nGist ID: ${this.gistId.substring(0, 6)}...\n同期可能です。`);
           } else {
             // 新規作成
             if (confirm('設定ファイルが見つかりません。現在の設定で新規作成しますか？')) {
@@ -4621,14 +4623,16 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       async download() {
         if (!this.gistId || !this.pat) return alert('連携設定が完了していません。先に「連携開始」を実行してください。');
 
-        if (!confirm('クラウドの設定で現在の設定を上書きしますか？\n（現在のローカル設定は失われます）')) return;
+        if (!confirm(`クラウドの設定（Gist ID: ${this.gistId ? this.gistId.substring(0, 6) : '不明'}...）で現在の設定を上書きしますか？\n（現在のローカル設定は失われます）`)) return;
 
         try {
           // キャッシュ回避のためにタイムスタンプを追加
-          const res = await fetch(`https://api.github.com/gists/${this.gistId}?timestamp=${Date.now()}`, {
+          const res = await fetch(`https://api.github.com/gists/${this.gistId}?access_token=${this.pat}&timestamp=${Date.now()}`, {
+            // ヘッダーではなくクエリパラメータ認証を試す（CORS等のトラブル回避）
+            // GitHub APIはAuthorizationヘッダー推奨だが、モバイルSafari等での挙動安定のためURLパラメータも考慮
+            // ここでは一旦ヘッダー認証に戻しつつ、余計なCache-Controlは削除
             headers: {
-              'Authorization': `token ${this.pat}`,
-              'Cache-Control': 'no-cache'
+              'Authorization': `token ${this.pat}`
             }
           });
 
