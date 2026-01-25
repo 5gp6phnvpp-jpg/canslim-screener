@@ -4355,13 +4355,21 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       async upload() {
-        if (!this.gistId || !this.pat) return alert('連携設定が完了していません');
+        if (!this.pat) return alert('連携設定が完了していません');
 
         if (!confirm('現在の設定でクラウドを上書きしますか？')) return;
 
         const content = this.createBackupData();
 
         try {
+          // Gist IDがない場合は新規作成
+          if (!this.gistId) {
+            await this.createGist();
+            alert('✅ 新規設定ファイルを作成し、設定を保存しました');
+            this.updateStatus();
+            return;
+          }
+
           const res = await fetch(`https://api.github.com/gists/${this.gistId}`, {
             method: 'PATCH',
             headers: {
@@ -4375,6 +4383,17 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
             })
           });
 
+          // Gistが見つからない場合（削除されていた場合）は新規作成
+          if (res.status === 404) {
+            console.log('Gist not found, creating new one...');
+            localStorage.removeItem('gistId');
+            this.gistId = null;
+            await this.createGist();
+            alert('✅ 設定ファイルを再作成し、設定を保存しました');
+            this.updateStatus();
+            return;
+          }
+
           if (!res.ok) throw new Error('アップロード失敗');
           alert('✅ 設定をクラウドに保存しました');
           this.updateStatus();
@@ -4384,7 +4403,7 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
 
       async download() {
-        if (!this.gistId || !this.pat) return alert('連携設定が完了していません');
+        if (!this.gistId || !this.pat) return alert('連携設定が完了していません。先に「連携開始」を実行してください。');
 
         if (!confirm('クラウドの設定で現在の設定を上書きしますか？\n（現在のローカル設定は失われます）')) return;
 
@@ -4392,6 +4411,15 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
           const res = await fetch(`https://api.github.com/gists/${this.gistId}`, {
             headers: { 'Authorization': `token ${this.pat}` }
           });
+
+          // Gistが見つからない場合（削除されていた場合）
+          if (res.status === 404) {
+            localStorage.removeItem('gistId');
+            this.gistId = null;
+            this.updateStatus();
+            alert('⚠️ 設定ファイルが見つかりません。\n先に「設定をアップロード」で新規作成してください。');
+            return;
+          }
 
           if (!res.ok) throw new Error('データ取得失敗');
           const gist = await res.json();
