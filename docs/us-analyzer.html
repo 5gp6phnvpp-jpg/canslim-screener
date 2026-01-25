@@ -4566,9 +4566,16 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       async upload() {
         if (!this.pat) return alert('連携設定が完了していません');
 
-        if (!confirm('現在の設定でクラウドを上書きしますか？')) return;
+        // 最新の状態を強制保存
+        if (typeof watchlistManager !== 'undefined') {
+          watchlistManager.save();
+        }
 
         const content = this.createBackupData();
+        const listCount = content.watchlist ? content.watchlist.length : 0;
+        const totalTickers = content.watchlist ? content.watchlist.reduce((sum, list) => sum + list.tickers.length, 0) : 0;
+
+        if (!confirm(`現在の設定でクラウドを上書きしますか？\n\n・リスト数: ${listCount}\n・総銘柄数: ${totalTickers}\n\n（スマホ側ではこのデータがダウンロードされます）`)) return;
 
         try {
           // Gist IDがない場合は新規作成
