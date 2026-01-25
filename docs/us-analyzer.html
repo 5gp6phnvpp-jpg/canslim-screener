@@ -1709,11 +1709,41 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         // 結果を表示
         displayResults(ticker, data, analysis);
 
+        // 一括分析結果（batchResults）を最新データで更新
+        updateBatchResultForTicker(ticker, analysis);
+
       } catch (err) {
         showError(err.message);
       } finally {
         showLoading(false);
       }
+    }
+
+    // 一括分析結果の特定銘柄を最新データで更新
+    function updateBatchResultForTicker(ticker, analysis) {
+      if (!batchResults || batchResults.length === 0) return;
+
+      const index = batchResults.findIndex(r => r.ticker === ticker);
+      if (index === -1) return;
+
+      // 最新の分析結果で上書き
+      batchResults[index] = {
+        ...batchResults[index],
+        price: analysis.current?.close || batchResults[index].price,
+        rsRating: analysis.rsRating,
+        stage: analysis.trendTemplate?.stage || batchResults[index].stage,
+        passCount: analysis.trendTemplate?.passCount || 0,
+        vcpDetected: analysis.basePatterns?.patterns?.some(p => p.name === 'VCPパターン') || false,
+        basePatterns: analysis.basePatterns?.patterns?.map(p => p.name) || [],
+        buyZone: analysis.riskManagement?.isInBuyZone || false,
+        rrRatio: analysis.riskManagement?.riskRewardRatio || '-'
+      };
+
+      // 保存を更新
+      saveBatchResults();
+
+      // UIを再描画
+      sortBatchResults();
     }
 
     // 株価データ取得（Alpha Vantage → Yahoo Financeフォールバック）
