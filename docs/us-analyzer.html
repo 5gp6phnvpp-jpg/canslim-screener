@@ -4609,6 +4609,61 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         };
       }
 
+      async upload() {
+        if (!this.pat) return alert('連携設定が完了していません');
+
+        // 最新の状態を強制保存
+        if (typeof watchlistManager !== 'undefined') {
+          watchlistManager.save();
+        }
+
+        const content = this.createBackupData();
+        const listCount = content.watchlist ? content.watchlist.length : 0;
+        const totalTickers = content.watchlist ? content.watchlist.reduce((sum, list) => sum + list.tickers.length, 0) : 0;
+
+        if (!confirm(`現在の設定でクラウドを上書きしますか？\n\n・リスト数: ${listCount}\n・総銘柄数: ${totalTickers}\n\n（スマホ側ではこのデータがダウンロードされます）`)) return;
+
+        try {
+          // Gist IDがない場合は新規作成
+          if (!this.gistId) {
+            await this.createGist();
+            alert('✅ 新規設定ファイルを作成し、設定を保存しました');
+            this.updateStatus();
+            return;
+          }
+
+          const res = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `token ${this.pat}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              files: {
+                [this.filename]: { content: JSON.stringify(content, null, 2) }
+              }
+            })
+          });
+
+          // Gistが見つからない場合（削除されていた場合）は新規作成
+          if (res.status === 404) {
+            console.log('Gist not found, creating new one...');
+            localStorage.removeItem('gistId');
+            this.gistId = null;
+            await this.createGist();
+            alert('✅ 設定ファイルを再作成し、設定を保存しました');
+            this.updateStatus();
+            return;
+          }
+
+          if (!res.ok) throw new Error('アップロード失敗');
+          alert('✅ 設定をクラウドに保存しました');
+          this.updateStatus();
+        } catch (e) {
+          alert('アップロード中にエラーが発生しました: ' + e.message);
+        }
+      }
+
       async download() {
         if (!this.pat) return alert('連携設定が完了していません。先に「連携開始」を実行してください。');
 
@@ -4707,7 +4762,10 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
     }
 
-    const syncManager = new GithubSyncManager();
+    // 初期化をDOM読み込み後に実行
+    document.addEventListener('DOMContentLoaded', () => {
+      window.syncManager = new GithubSyncManager();
+    });
 
   </script>
 

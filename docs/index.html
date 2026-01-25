@@ -4098,6 +4098,12 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         this.storageKey = 'usMetrics_watchlists';
         this.lists = this.load();
 
+        this.storageKey = 'usMetrics_watchlists';
+        this.lists = this.load();
+
+        // データの整合性チェック
+        this.sanitize();
+
         // 強制マイグレーション: FANG+リストがあれば削除
         const fangListIndex = this.lists.findIndex(l => l.id === 'wl_fang' || l.name === 'FANG+');
         if (fangListIndex !== -1) {
@@ -4136,6 +4142,20 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         return [
           { id: 'wl_default', name: 'メイン', tickers: ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'], created_at: Date.now() }
         ];
+      }
+
+      sanitize() {
+        if (!Array.isArray(this.lists)) {
+          this.lists = this.load();
+        }
+        this.lists.forEach(l => {
+          if (!Array.isArray(l.tickers)) l.tickers = [];
+          // 文字列以外を除外 & 空白削除
+          l.tickers = l.tickers.filter(t => typeof t === 'string' && t.trim().length > 0);
+          // 念のため重複排除
+          l.tickers = Array.from(new Set(l.tickers));
+        });
+        this.save();
       }
 
       save() {
@@ -4589,6 +4609,61 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         };
       }
 
+      async upload() {
+        if (!this.pat) return alert('連携設定が完了していません');
+
+        // 最新の状態を強制保存
+        if (typeof watchlistManager !== 'undefined') {
+          watchlistManager.save();
+        }
+
+        const content = this.createBackupData();
+        const listCount = content.watchlist ? content.watchlist.length : 0;
+        const totalTickers = content.watchlist ? content.watchlist.reduce((sum, list) => sum + list.tickers.length, 0) : 0;
+
+        if (!confirm(`現在の設定でクラウドを上書きしますか？\n\n・リスト数: ${listCount}\n・総銘柄数: ${totalTickers}\n\n（スマホ側ではこのデータがダウンロードされます）`)) return;
+
+        try {
+          // Gist IDがない場合は新規作成
+          if (!this.gistId) {
+            await this.createGist();
+            alert('✅ 新規設定ファイルを作成し、設定を保存しました');
+            this.updateStatus();
+            return;
+          }
+
+          const res = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `token ${this.pat}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              files: {
+                [this.filename]: { content: JSON.stringify(content, null, 2) }
+              }
+            })
+          });
+
+          // Gistが見つからない場合（削除されていた場合）は新規作成
+          if (res.status === 404) {
+            console.log('Gist not found, creating new one...');
+            localStorage.removeItem('gistId');
+            this.gistId = null;
+            await this.createGist();
+            alert('✅ 設定ファイルを再作成し、設定を保存しました');
+            this.updateStatus();
+            return;
+          }
+
+          if (!res.ok) throw new Error('アップロード失敗');
+          alert('✅ 設定をクラウドに保存しました');
+          this.updateStatus();
+        } catch (e) {
+          alert('アップロード中にエラーが発生しました: ' + e.message);
+        }
+      }
+
       async download() {
         if (!this.pat) return alert('連携設定が完了していません。先に「連携開始」を実行してください。');
 
@@ -4631,6 +4706,8 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
           // UIを即時更新（リロード失敗対策）
           if (watchlistManager) {
             watchlistManager.lists = watchlistManager.load();
+            // データの整合性チェック（不正データ修復）
+            watchlistManager.sanitize();
             watchlistManager.activeListId = localStorage.getItem('usMetrics_activeListId') || watchlistManager.lists[0].id;
             watchlistManager.updateSelect();
             watchlistManager.renderPanel();
@@ -4685,7 +4762,10 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
     }
 
-    const syncManager = new GithubSyncManager();
+    // 初期化をDOM読み込み後に実行
+    document.addEventListener('DOMContentLoaded', () => {
+      window.syncManager = new GithubSyncManager();
+    });
 
   </script>
 
