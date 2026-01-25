@@ -1162,9 +1162,9 @@
     // AI分析履歴管理
     // ========================================
     const AI_HISTORY_KEY = 'aiAnalysisHistory';
-    const MAX_HISTORY_ITEMS = 20; // 最大保存件数
+    const MAX_HISTORY_ITEMS = 50; // 最大保存件数（増加）
 
-    // AI分析結果を履歴に保存
+    // AI分析結果を履歴に保存（同じ銘柄でも複数回保存可能）
     function saveAIAnalysisHistory(ticker, htmlContent) {
       const history = JSON.parse(localStorage.getItem(AI_HISTORY_KEY) || '[]');
 
@@ -1175,22 +1175,19 @@
         content: htmlContent
       };
 
-      // 同じ銘柄の古い履歴を削除（最新のみ保持）
-      const filteredHistory = history.filter(item => item.ticker !== ticker);
-
-      // 新しい項目を先頭に追加
-      filteredHistory.unshift(newItem);
+      // 新しい項目を先頭に追加（上書きしない）
+      history.unshift(newItem);
 
       // 最大件数を超えた場合は古いものを削除
-      if (filteredHistory.length > MAX_HISTORY_ITEMS) {
-        filteredHistory.pop();
+      if (history.length > MAX_HISTORY_ITEMS) {
+        history.pop();
       }
 
-      localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(filteredHistory));
+      localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(history));
       renderAIHistoryList();
     }
 
-    // AI分析履歴を表示
+    // AI分析履歴を表示（銘柄ごとにグループ化）
     function renderAIHistoryList() {
       const history = JSON.parse(localStorage.getItem(AI_HISTORY_KEY) || '[]');
       const listEl = document.getElementById('aiHistoryList');
@@ -1205,19 +1202,49 @@
         return;
       }
 
-      listEl.innerHTML = history.map((item, index) => {
-        const date = new Date(item.timestamp);
-        const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+      // 銘柄ごとにグループ化
+      const grouped = {};
+      history.forEach((item, index) => {
+        if (!grouped[item.ticker]) {
+          grouped[item.ticker] = [];
+        }
+        grouped[item.ticker].push({ ...item, originalIndex: index });
+      });
+
+      // 銘柄ごとに表示（最新の分析がある銘柄を先に）
+      const sortedTickers = Object.keys(grouped).sort((a, b) => {
+        return new Date(grouped[b][0].timestamp) - new Date(grouped[a][0].timestamp);
+      });
+
+      listEl.innerHTML = sortedTickers.map(ticker => {
+        const items = grouped[ticker];
+        const latestDate = new Date(items[0].timestamp);
+        const latestDateStr = `${latestDate.getMonth() + 1}/${latestDate.getDate()} ${latestDate.getHours()}:${String(latestDate.getMinutes()).padStart(2, '0')}`;
 
         return `
           <details style="margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
             <summary style="cursor: pointer; padding: 10px 12px; background: #f8fafc; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 1.1em;">${item.ticker}</span>
-              <span style="font-size: 0.75rem; color: #94a3b8; font-weight: normal;">${dateStr}</span>
-              <button onclick="event.stopPropagation(); deleteAIHistoryItem(${index})" style="margin-left: auto; padding: 2px 8px; font-size: 0.7rem; background: #fff; border: 1px solid #fecaca; color: #dc2626; border-radius: 4px; cursor: pointer;">削除</button>
+              <span style="font-size: 1.1em;">${ticker}</span>
+              <span style="font-size: 0.7rem; background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px;">${items.length}件</span>
+              <span style="font-size: 0.75rem; color: #94a3b8; font-weight: normal;">最終: ${latestDateStr}</span>
             </summary>
-            <div style="padding: 12px; background: linear-gradient(135deg, #faf5ff, #f3e8ff); line-height: 1.6; font-size: 0.9rem; white-space: pre-wrap; max-height: 300px; overflow-y: auto;">
-              ${item.content}
+            <div style="padding: 8px; background: #f1f5f9;">
+              ${items.map((item, idx) => {
+          const date = new Date(item.timestamp);
+          const dateStr = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+          return `
+                  <details style="margin-bottom: 6px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
+                    <summary style="cursor: pointer; padding: 8px 10px; background: white; font-size: 0.85rem; color: #475569; display: flex; align-items: center; gap: 8px;">
+                      <span>📅 ${dateStr}</span>
+                      <button onclick="event.stopPropagation(); deleteAIHistoryItem(${item.originalIndex})" style="margin-left: auto; padding: 2px 6px; font-size: 0.65rem; background: #fff; border: 1px solid #fecaca; color: #dc2626; border-radius: 4px; cursor: pointer;">削除</button>
+                    </summary>
+                    <div style="padding: 12px; background: linear-gradient(135deg, #faf5ff, #f3e8ff); line-height: 1.6; font-size: 0.85rem; white-space: pre-wrap; max-height: 300px; overflow-y: auto;">
+                      ${item.content}
+                    </div>
+                  </details>
+                `;
+        }).join('')}
             </div>
           </details>
         `;
