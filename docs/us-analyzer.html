@@ -4098,6 +4098,12 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         this.storageKey = 'usMetrics_watchlists';
         this.lists = this.load();
 
+        this.storageKey = 'usMetrics_watchlists';
+        this.lists = this.load();
+
+        // データの整合性チェック
+        this.sanitize();
+
         // 強制マイグレーション: FANG+リストがあれば削除
         const fangListIndex = this.lists.findIndex(l => l.id === 'wl_fang' || l.name === 'FANG+');
         if (fangListIndex !== -1) {
@@ -4136,6 +4142,20 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         return [
           { id: 'wl_default', name: 'メイン', tickers: ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'], created_at: Date.now() }
         ];
+      }
+
+      sanitize() {
+        if (!Array.isArray(this.lists)) {
+          this.lists = this.load();
+        }
+        this.lists.forEach(l => {
+          if (!Array.isArray(l.tickers)) l.tickers = [];
+          // 文字列以外を除外 & 空白削除
+          l.tickers = l.tickers.filter(t => typeof t === 'string' && t.trim().length > 0);
+          // 念のため重複排除
+          l.tickers = Array.from(new Set(l.tickers));
+        });
+        this.save();
       }
 
       save() {
@@ -4631,6 +4651,8 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
           // UIを即時更新（リロード失敗対策）
           if (watchlistManager) {
             watchlistManager.lists = watchlistManager.load();
+            // データの整合性チェック（不正データ修復）
+            watchlistManager.sanitize();
             watchlistManager.activeListId = localStorage.getItem('usMetrics_activeListId') || watchlistManager.lists[0].id;
             watchlistManager.updateSelect();
             watchlistManager.renderPanel();
