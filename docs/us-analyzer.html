@@ -4639,8 +4639,21 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
           const data = JSON.parse(file.content);
           this.restoreData(data);
 
-          alert('✅ 設定を復元しました。ページをリロードします。');
-          location.reload();
+          // UIを即時更新（リロード失敗対策）
+          if (watchlistManager) {
+            watchlistManager.lists = watchlistManager.load();
+            watchlistManager.activeListId = localStorage.getItem('usMetrics_activeListId') || watchlistManager.lists[0].id;
+            watchlistManager.updateSelect();
+            watchlistManager.renderPanel();
+          }
+
+          const listCount = data.watchlist ? data.watchlist.length : 0;
+          alert(`✅ 設定を復元しました！\n\n・リスト数: ${listCount}\n・アクティブ: ${watchlistManager.getActiveList().name}\n\n画面を更新します。`);
+
+          // キャッシュ回避のためにパラメータ付きでリロード
+          const url = new URL(window.location.href);
+          url.searchParams.set('t', Date.now());
+          window.location.href = url.toString();
         } catch (e) {
           alert('ダウンロード中にエラーが発生しました: ' + e.message);
         }
