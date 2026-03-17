@@ -1508,30 +1508,152 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
     }
 
+    // マーケットインデックスデータの取得 (3段階フォールバック)
+    // 優先順位:
+    // 1. Finnhub (SPY/QQQ ETF) - 無料枠でも安定、50回/分
+    // 2. Alpha Vantage (SPX/NDX -> SPY/QQQ) - ユーザーのキーを使用
+    // 3. Yahoo Finance (Proxy) - 最終手段
     async function fetchMarketIndex(ticker) {
+      console.log(`Fetching market data for ${ticker}...`);
+
+      // ETFシンボルに変換
+      const etfSymbol = ticker === '^GSPC' ? 'SPY' : 'QQQ';
+
+      // 1. Finnhub（最優先 - 無料枠でETFデータ取得可能）
+      const finnhubKey = localStorage.getItem('finnhubApiKey');
+      if (finnhubKey) {
+        try {
+          console.log(`Trying Finnhub with ${etfSymbol}...`);
+          const data = await fetchFinnhubDailyMarket(etfSymbol, finnhubKey);
+          if (data && data.length >= 50) {
+            console.log(`✅ Finnhub: ${etfSymbol} ${data.length}日分取得成功`);
+            return data;
+          }
+        } catch (e) {
+          console.warn('Finnhub attempt failed:', e);
+        }
+      } else {
+        console.log('Finnhub: APIキー未設定 - スキップ');
+      }
+
+      // 2. Alpha Vantage
+      const avKey = localStorage.getItem('alphaVantageKey');
+      if (avKey) {
+        try {
+          console.log(`Trying Alpha Vantage with ${etfSymbol}...`);
+          const data = await fetchAlphaVantageDailyMarket(etfSymbol, avKey);
+          if (data && data.length >= 50) {
+            console.log(`✅ Alpha Vantage: ${etfSymbol} ${data.length}日分取得成功`);
+            return data;
+          }
+        } catch (e) {
+          console.warn('Alpha Vantage attempt failed:', e);
+        }
+      }
+
+      // 3. Yahoo Finance (via CORS Proxy) - Last Resort
+      console.log('Trying Yahoo Finance (Proxy) as last resort...');
       try {
         const endDate = Math.floor(Date.now() / 1000);
-        const startDate = endDate - (100 * 24 * 60 * 60); // 100日分
+        const startDate = endDate - (100 * 24 * 60 * 60);
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${startDate}&period2=${endDate}&interval=1d`;
 
-        const response = await fetch(CORS_PROXY + encodeURIComponent(yahooUrl));
-        const json = await response.json();
+        const proxies = [
+          'https://api.allorigins.win/raw?url=',
+          'https://corsproxy.io/?'
+        ];
 
+        let response = null;
+        for (const proxy of proxies) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const res = await fetch(proxy + encodeURIComponent(yahooUrl), { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) { response = res; break; }
+          } catch (e) { /* continue */ }
+        }
+
+        if (!response) return null;
+
+        const json = await response.json();
         const result = json.chart?.result?.[0];
         if (!result) return null;
 
         const timestamps = result.timestamp;
         const ohlcv = result.indicators.quote[0];
 
-        const quotes = timestamps.map((ts, i) => ({
+        return timestamps.map((ts, i) => ({
           date: new Date(ts * 1000),
           close: ohlcv.close[i],
+          high: ohlcv.high?.[i],
+          low: ohlcv.low?.[i],
           volume: ohlcv.volume[i]
         })).filter(q => q.close !== null);
-
-        return quotes;
       } catch (e) {
         console.error(`Failed to fetch ${ticker}:`, e);
+        return null;
+      }
+    }
+
+    // Finnhubから日足データを取得 (マーケットインデックス用)
+    async function fetchFinnhubDailyMarket(symbol, apiKey) {
+      const endDate = Math.floor(Date.now() / 1000);
+      const startDate = endDate - (150 * 24 * 60 * 60);
+      const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${startDate}&to=${endDate}&token=${apiKey}`;
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        const json = await res.json();
+        if (json.s === 'no_data' || !json.c) return null;
+
+        return json.t.map((t, i) => ({
+          date: new Date(t * 1000),
+          close: json.c[i],
+          high: json.h[i],
+          low: json.l[i],
+          volume: json.v[i]
+        }));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Alpha Vantageから日足データを取得 (マーケットインデックス用)
+    async function fetchAlphaVantageDailyMarket(ticker, apiKey) {
+      const url = `${ALPHA_VANTAGE_BASE}?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${apiKey}`;
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        const json = await res.json();
+        if (json['Error Message'] || json['Note']) return null;
+
+        const timeSeries = json['Time Series (Daily)'];
+        if (!timeSeries) return null;
+
+        const quotes = Object.keys(timeSeries).map(dateStr => {
+          const d = timeSeries[dateStr];
+          return {
+            date: new Date(dateStr),
+            close: parseFloat(d['4. close']),
+            high: parseFloat(d['2. high']),
+            low: parseFloat(d['3. low']),
+            volume: parseFloat(d['5. volume'])
+          };
+        }).sort((a, b) => a.date - b.date);
+
+        return quotes.slice(-100);
+      } catch (e) {
         return null;
       }
     }

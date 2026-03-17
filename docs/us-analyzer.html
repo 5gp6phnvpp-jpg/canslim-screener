@@ -678,7 +678,9 @@
       <h1 style="font-size: 1.6rem; margin-bottom: 6px;">🇺🇸 米国株分析ツール</h1>
       <p style="font-size: 0.85rem;">CANSLIM / Minervini 手法による分析</p>
       <a href="index.html" class="external-link"
-        style="display: inline-block; margin-top: 10px; padding: 6px 12px; font-size: 0.8rem;">🇯🇵 日本株へ</a>
+        style="display: inline-block; margin-top: 10px; padding: 6px 12px; font-size: 0.8rem;">🇯🇵 日本株レポート</a>
+      <a href="jp-analyzer.html" class="external-link"
+        style="display: inline-block; margin-top: 10px; padding: 6px 12px; font-size: 0.8rem;">🇯🇵 日本株スクリーナー</a>
     </header>
 
     <!-- マーケット状況 -->
@@ -1508,15 +1510,168 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
       }
     }
 
+    // マーケットインデックスデータの取得 (最適化版)
+    // 優先順位:
+    // 1. Finnhub (SPY/QQQ ETF) - 無料枠でも安定、50回/分
+    // 2. Alpha Vantage (SPX/NDX -> SPY/QQQ) - ユーザーのキーを使用
+    // 3. Yahoo Finance (Proxy) - 最終手段
     async function fetchMarketIndex(ticker) {
+      console.log(`Fetching market data for ${ticker}...`);
+
+      // ETFシンボルに変換（Finnhub/Alpha Vantage共通）
+      const etfSymbol = ticker === '^GSPC' ? 'SPY' : 'QQQ';
+
+      // 1. Finnhub（最優先 - 無料枠でETFデータ取得可能）
+      const finnhubKey = localStorage.getItem('finnhubApiKey');
+      if (finnhubKey) {
+        try {
+          console.log(`Trying Finnhub with ${etfSymbol}...`);
+          const data = await fetchFinnhubDaily(etfSymbol, finnhubKey);
+          if (data && data.length >= 50) {
+            console.log(`✅ Finnhub: ${etfSymbol} ${data.length}日分取得成功`);
+            return data;
+          }
+        } catch (e) {
+          console.warn('Finnhub attempt failed:', e);
+        }
+      } else {
+        console.log('Finnhub: APIキー未設定 - スキップ');
+      }
+
+      // 2. Alpha Vantage
+      const avKey = localStorage.getItem('alphaVantageKey');
+      if (avKey) {
+        try {
+          let targetSymbol = ticker === '^GSPC' ? 'SPX' : 'NDX';
+          console.log(`Trying Alpha Vantage with ${targetSymbol}...`);
+          let data = await fetchAlphaVantageDaily(targetSymbol);
+
+          // データが取れなかった場合、ETFでフォールバック
+          if (!data) {
+            console.log(`Alpha Vantage ${targetSymbol} failed, falling back to ETF: ${etfSymbol}`);
+            data = await fetchAlphaVantageDaily(etfSymbol);
+          }
+
+          if (data) {
+            console.log(`✅ Alpha Vantage: ${data.length}日分取得成功`);
+            return data;
+          }
+        } catch (e) {
+          console.warn('Alpha Vantage attempt failed:', e);
+        }
+      }
+
+      // 3. Yahoo Finance (via CORS Proxy) - Last Resort
+      console.log('Trying Yahoo Finance (Proxy) as last resort...');
+      return await fetchYahooProxyMarketData(ticker);
+    }
+
+    // Alpha Vantageから日足データを取得 (Index/ETF用)
+    async function fetchAlphaVantageDaily(ticker) {
+      const apiKey = localStorage.getItem('alphaVantageKey') || DEMO_API_KEY;
+      const url = `${ALPHA_VANTAGE_BASE}?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${apiKey}`;
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒タイムアウト
+
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        const json = await res.json();
+
+        if (json['Error Message'] || json['Note']) {
+          // console.warn('Alpha Vantage API Error/Limit:', json);
+          return null;
+        }
+
+        const timeSeries = json['Time Series (Daily)'];
+        if (!timeSeries) return null;
+
+        const quotes = Object.keys(timeSeries).map(dateStr => {
+          const d = timeSeries[dateStr];
+          return {
+            date: new Date(dateStr),
+            close: parseFloat(d['4. close']),
+            high: parseFloat(d['2. high']),
+            low: parseFloat(d['3. low']),
+            volume: parseFloat(d['5. volume'])
+          };
+        }).sort((a, b) => a.date - b.date);
+
+        // データ量を調整（直近100日分あれば十分）
+        return quotes.slice(-100);
+
+      } catch (e) {
+        return null; // 静かに失敗
+      }
+    }
+
+    // Finnhubから日足データを取得 (Index用)
+    async function fetchFinnhubDaily(symbol, apiKey) {
+      const endDate = Math.floor(Date.now() / 1000);
+      const startDate = endDate - (150 * 24 * 60 * 60); // 150日分
+      // Indexデータ取得
+      const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${startDate}&to=${endDate}&token=${apiKey}`;
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        const json = await res.json();
+        if (json.s === 'no_data' || !json.c) return null;
+
+        return json.t.map((t, i) => ({
+          date: new Date(t * 1000),
+          close: json.c[i],
+          high: json.h[i],
+          low: json.l[i],
+          volume: json.v[i]
+        }));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Yahoo Finance (Proxy) - 旧 fetchMarketIndex のロジック
+    async function fetchYahooProxyMarketData(ticker) {
       try {
         const endDate = Math.floor(Date.now() / 1000);
         const startDate = endDate - (100 * 24 * 60 * 60); // 100日分
+        // フォールバック用に短いタイムアウトを設定 (5秒)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${startDate}&period2=${endDate}&interval=1d`;
 
-        const response = await fetch(CORS_PROXY + encodeURIComponent(yahooUrl));
-        const json = await response.json();
+        const proxies = [
+          'https://api.allorigins.win/raw?url=',
+          'https://corsproxy.io/?'
+        ];
 
+        let response = null;
+        let lastError = null;
+
+        for (const proxy of proxies) {
+          try {
+            const res = await fetch(proxy + encodeURIComponent(yahooUrl), { signal: controller.signal });
+            if (res.ok) {
+              response = res;
+              break;
+            }
+          } catch (e) {
+            lastError = e;
+          }
+        }
+
+        clearTimeout(timeoutId);
+
+        if (!response) throw lastError || new Error('All proxies failed');
+
+        const json = await response.json();
         const result = json.chart?.result?.[0];
         if (!result) return null;
 
@@ -1526,12 +1681,15 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         const quotes = timestamps.map((ts, i) => ({
           date: new Date(ts * 1000),
           close: ohlcv.close[i],
+          high: ohlcv.high[i],
+          low: ohlcv.low[i],
           volume: ohlcv.volume[i]
         })).filter(q => q.close !== null);
 
         return quotes;
+
       } catch (e) {
-        console.error(`Failed to fetch ${ticker}:`, e);
+        console.warn(`Yahoo Finance Proxy failed for ${ticker}:`, e);
         return null;
       }
     }
@@ -1571,6 +1729,148 @@ ${data.vcp?.detected ? `- 収縮回数: ${data.vcp.contractions}回, 最終週�
         const dataDate = new Date(current.date);
         timestampEl.textContent = `${dataDate.getFullYear()}/${(dataDate.getMonth() + 1).toString().padStart(2, '0')}/${dataDate.getDate().toString().padStart(2, '0')} 終値`;
       }
+
+      // ===============================================
+      // 売り抜け日 (Distribution Day) 分析
+      // ===============================================
+      const distributionAnalysis = calculateMarketHealth(quotes);
+      displayDistributionStatus(prefix, distributionAnalysis);
+    }
+
+    // 市場の健全性分析（売り抜け日・Stalling Dayカウント）
+    function calculateMarketHealth(quotes) {
+      // 直近25日を対象とする
+      const analysisWindow = 25;
+      if (quotes.length < analysisWindow + 1) return { count: 0, details: [] };
+
+      // 分析対象の開始インデックス
+      const startIndex = quotes.length - analysisWindow;
+      const distributionDays = [];
+
+      for (let i = startIndex; i < quotes.length; i++) {
+        const current = quotes[i];
+        const prev = quotes[i - 1];
+
+        // 前日が存在しない場合はスキップ
+        if (!prev) continue;
+
+        let type = null;
+
+        // 1. Distribution Day (売り抜け日) 判定
+        // 下落率0.2%以上かつ出来高増
+        if (current.close <= prev.close * 0.998 && current.volume > prev.volume) {
+          type = 'Distribution';
+        }
+        // 2. Stalling Day (停滞日) 判定
+        // 上昇日 かつ 出来高維持/増(95%以上)
+        else if (current.close >= prev.close && current.volume >= prev.volume * 0.95) {
+          const changePercent = (current.close - prev.close) / prev.close;
+          const range = current.high - current.low;
+          // 上昇率0.4%未満
+          const isSmallGain = changePercent < 0.004;
+          // 下位引け（レンジの下半分で引け）
+          const isPoorClose = range > 0 && ((current.close - current.low) / range <= 0.5);
+
+          if (isSmallGain || isPoorClose) {
+            type = 'Stalling';
+          }
+        }
+
+        if (type) {
+          // 3. 減少ルール (5%ルール) の適用チェック
+          // この日以降（i+1〜末尾）で、終値が「当日の終値 * 1.05」以上になる日があるか
+          let isValid = true;
+          let invalidReason = '';
+
+          for (let k = i + 1; k < quotes.length; k++) {
+            if (quotes[k].close >= current.close * 1.05) {
+              isValid = false;
+              const dateK = new Date(quotes[k].date);
+              invalidReason = `無効化: ${dateK.getMonth() + 1}/${dateK.getDate()}に5%上昇`;
+              break;
+            }
+          }
+
+          distributionDays.push({
+            date: current.date,
+            type: type,
+            close: current.close,
+            change: ((current.close - prev.close) / prev.close * 100).toFixed(2),
+            volumeChange: ((current.volume - prev.volume) / prev.volume * 100).toFixed(1),
+            isValid: isValid,
+            note: invalidReason
+          });
+        }
+      }
+
+      // 有効な日数をカウント
+      const validCount = distributionDays.filter(d => d.isValid).length;
+
+      return {
+        count: validCount,
+        details: distributionDays
+      };
+    }
+
+    function displayDistributionStatus(prefix, analysis) {
+      // 既存の要素があれば削除（再描画のため）
+      const existingStatus = document.getElementById(`${prefix}DistributionStatus`);
+      if (existingStatus) existingStatus.remove();
+
+      // 親要素（market-card内のdiv）を取得
+      const parentCard = document.getElementById(`${prefix}Value`).closest('.market-card');
+      if (!parentCard) return;
+
+      const statusEl = document.createElement('div');
+      statusEl.id = `${prefix}DistributionStatus`;
+      statusEl.style.marginTop = '12px';
+      statusEl.style.padding = '8px 0';
+      statusEl.style.borderTop = '1px solid var(--border)';
+
+      // 警告レベル判定
+      let alertColor = 'var(--success)';
+      let alertText = '安全';
+      if (analysis.count >= 6) {
+        alertColor = 'var(--danger)';
+        alertText = '危険 (調整警戒)';
+      } else if (analysis.count >= 4) {
+        alertColor = 'var(--warning)';
+        alertText = '注意 (売り圧力)';
+      }
+
+      // 日付フォーマット
+      const formatDate = (date) => {
+        const d = new Date(date);
+        return `${d.getMonth() + 1}/${d.getDate()}`;
+      };
+
+      // 詳細リストのHTML生成
+      // 新しい順に表示
+      const detailsHtml = analysis.details.slice().reverse().map(d => {
+        const icon = d.type === 'Distribution' ? '🔴' : '🟠'; // 売り抜け=赤, Stalling=オレンジ
+        const style = d.isValid ? '' : 'text-decoration: line-through; opacity: 0.5;';
+        const note = d.isValid ? '' : `<span style="font-size:0.75rem; color:#999;">(${d.note})</span>`;
+        return `<div style="${style} margin-bottom:4px;">
+          ${icon} <strong>${formatDate(d.date)}</strong>: ${d.type} <span style="font-size:0.8rem">(${d.change}%, Vol ${d.volumeChange}%)</span> ${note}
+        </div>`;
+      }).join('') || '<div style="color:#999;">直近25日間の売り抜け日はありません</div>';
+
+      statusEl.innerHTML = `
+        <div style="font-size: 0.9rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+          <span>売り抜け日カウント:</span>
+          <span style="color: ${alertColor}; font-size: 1.1rem;">${analysis.count}日 (${alertText})</span>
+        </div>
+        <details style="margin-top: 8px;">
+          <summary style="font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+            内訳を表示 (分布: ${analysis.details.filter(d => d.type === 'Distribution').length}, 停滞: ${analysis.details.filter(d => d.type === 'Stalling').length})
+          </summary>
+          <div style="margin-top: 8px; font-size: 0.85rem; max-height: 200px; overflow-y: auto; background: var(--bg-accent); padding: 8px; border-radius: 6px;">
+            ${detailsHtml}
+          </div>
+        </details>
+      `;
+
+      parentCard.appendChild(statusEl);
     }
 
     // ========================================
